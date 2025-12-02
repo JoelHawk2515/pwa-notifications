@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/style.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="/assets/favicon.png" type="image/x-icon">
+    <title>User Profile</title>
+</head>
+<body class="profile-page">
+    <div id="g-page-surround">
+        <section id="g-top"></section>
+        <section id="g-navigation"></section>
+        <section id="g-header"></section>
+        <section id="g-utility"></section>
+        <section id="g-container-main">
+            <h1>User Profile</h1>
+
+            <!-- Display user role based on isAdmin -->
+            <p><%= isAdmin ? 'Administrator' : 'User' %></p>
+
+            <!-- Profile update form -->
+            <form action="/update-profile" method="post" enctype="multipart/form-data">
+                <label for="username">Username:</label>
+                <input type="text" id="username" name="username" value="<%= user.username %>" readonly><br>
+            
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" value="<%= user.email %>" required><br>
+            
+                <label for="first_name">First Name:</label>
+                <input type="text" id="first_name" name="first_name" value="<%= user.first_name %>" required><br>
+            
+                <label for="last_name">Last Name:</label>
+                <input type="text" id="last_name" name="last_name" value="<%= user.last_name %>" required><br>
+            
+                <label for="profile_image">Profile Image:</label>
+                <input type="file" id="profile_image" name="profile_image" accept="image/*"><br>
+            
+                <button type="submit">Update Profile</button>
+            </form>
+
+            <!-- Admin form to add a new user -->
+            <% if (isAdmin) { %>
+                <h2>Add New User</h2>
+                <form action="/add-user" method="post">
+                    <label for="new_username">Username:</label>
+                    <input type="text" id="new_username" name="username" required><br>
+            
+                    <label for="new_email">Email:</label>
+                    <input type="email" id="new_email" name="email" required><br>
+            
+                    <label for="new_role">Role:</label>
+                    <select id="new_role" name="role">
+                        <option value="administrator">Administrator</option>
+                        <option value="site-access level">Site Access</option>
+                    </select><br>
+            
+                    <label for="sites">Sites:</label>
+                    <div id="sites-container">
+                        <input type="text" id="search-sites" placeholder="Search Sites" oninput="filterSites()">
+                        <div id="site-dropdown" class="dropdown">
+                            <ul id="site-list">
+                                <% sites.forEach(function(site) { %>
+                                    <li class="site-option" data-site-id="<%= site.siteIdentifier %>" onclick="addSiteToSelection('<%= site.siteIdentifier %>', '<%= site.siteCode %>')">
+                                        <%= site.siteCode %>
+                                    </li>
+                                <% }) %>
+                            </ul>
+                        </div>
+                        <div id="selected-sites"></div>
+                    </div><br>
+            
+                    <button type="submit">Add User</button>
+                </form>
+            <% } %>
+        </section>
+        <section id="g-container-footer"></section>
+        <section id="g-topnav"></section>
+        <section id="g-sidenav">
+            <div id="side-menu-placeholder"></div>
+        </section>
+    </div>
+
+    <script>
+        // Assuming you have access to user's role in your EJS template
+        var isAdmin = <%= user.role === 'administrator' %>; // This will evaluate to true or false
+    </script> 
+
+    <script>
+        let selectedSites = [];
+
+        // Function to filter the site dropdown based on search input
+        function filterSites() {
+            const searchInput = document.getElementById('search-sites').value.toLowerCase();
+            const siteOptions = document.querySelectorAll('.site-option');
+            siteOptions.forEach(option => {
+                const siteText = option.textContent.toLowerCase();
+                if (siteText.includes(searchInput)) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
+
+        // Function to add selected site to the list of selected sites
+        function addSiteToSelection(siteId, siteCode) {
+            if (!selectedSites.some(site => site.id === siteId)) {
+                selectedSites.push({ id: siteId, code: siteCode });
+                updateSelectedSites();
+            }
+        }
+
+        // Function to remove a site from the selected sites list
+        function removeSiteFromSelection(siteId) {
+            selectedSites = selectedSites.filter(site => site.id !== siteId);
+            updateSelectedSites();
+        }
+
+        // Function to update the display of selected sites
+        function updateSelectedSites() {
+            const selectedSitesContainer = document.getElementById('selected-sites');
+            selectedSitesContainer.innerHTML = '';  // Clear previous selected sites
+
+            selectedSites.forEach(site => {
+                const siteElement = document.createElement('span');
+                siteElement.classList.add('selected-site');
+                siteElement.innerHTML = `${site.code} <span class="remove-site" onclick="removeSiteFromSelection('${site.id}')">x</span>`;
+                selectedSitesContainer.appendChild(siteElement);
+            });
+        }
+    </script>
+
+    <script>
+        // Function to load and insert the side menu
+        function loadSideMenu() {
+            const sideMenuPlaceholder = document.getElementById('side-menu-placeholder');
+            const xhr = new XMLHttpRequest();
+            const menuFileName = isAdmin ? '/side-menu-admin' : '/side-menu'; // Choose the appropriate menu based on isAdmin
+    
+            xhr.open('GET', menuFileName, true);
+    
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    // Insert the side menu content into the placeholder
+                    sideMenuPlaceholder.innerHTML = xhr.responseText;
+    
+                    // After loading the side menu, update the user profile section
+                    updateUserProfileSection();
+                }
+            };
+    
+            xhr.send();
+        }
+
+        function updateUserProfileSection() {
+            fetch('/api/user-profile')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(user => {
+                    const userProfileText = document.querySelector('.user-profile-text');
+                    const userAccountLevel = document.querySelector('.user-account-level');
+                    const userProfileImage = document.querySelector('.user-profile-image-img'); // Select the image element
+
+                    if (userProfileText && userAccountLevel && userProfileImage) {
+                        userProfileText.textContent = user.first_name + ' ' + user.last_name;
+                        userAccountLevel.textContent = user.role;
+                        
+                        // Check if a profile image is available, otherwise set a default image source
+                        if (user.profile_image) {
+                            userProfileImage.src = user.profile_image;
+                        } else {
+                            userProfileImage.src = 'assets/user-icon.png'; // Default image source
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching user data:', error);
+                });
+        }
+
+        // Call this function when the page loads
+        document.addEventListener('DOMContentLoaded', updateUserProfileSection);
+
+        // Call the function to load the side menu
+        loadSideMenu();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const sideNav = document.getElementById('g-sidenav');
+            const containerMain = document.getElementById('g-container-main');
+            const utility = document.getElementById('g-utility');
+
+            if (sideNav && containerMain) {
+                sideNav.addEventListener('mouseenter', function() {
+                    containerMain.classList.add('sidebar-open');
+                    utility.classList.add('sidebar-open');
+                    sideNav.classList.add('sidebar-open');
+            });
+
+                /*sideNav.addEventListener('mouseleave', function() {
+                    containerMain.classList.remove('sidebar-open');
+                    utility.classList.remove('sidebar-open');
+                });*/
+            }
+        });
+    </script>
+</body>
+</html>

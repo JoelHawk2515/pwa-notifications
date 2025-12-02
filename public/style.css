@@ -1,0 +1,634 @@
+@import url('//fonts.googleapis.com/css2?family=Caudex:ital,wght@0,400;0,700;1,400;1,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+/************ TEMPLATE  ************
+
+************/
+
+body {
+    --primary-color: #192e72;
+    --secondary-color: #c9b8a0;
+
+    --primary-rgb: 25,46,114;
+    --secondary-rgb: 201,184,160;
+
+    --default-white: #ffffff;
+    --default-black: #000000;
+
+    --dark-color: #353535;
+
+    --title-font-family: 'EB Garamond', serif;
+    --body-font-family: 'Lato', sans-serif;
+
+    --heading-color: var(--primary-color);
+    --heading-font-family: var(--title-font-family);
+
+    --title-border-bottom: 1px solid var(--secondary-color);
+
+    --home-title-font: var(--title-font-family);
+
+    --transparent: rgba(255,255,255,0);
+
+    --default-box-shadow: 0px 0px 15px rgba(0,0,0,.25);
+
+    --swiper-box-shadow: var(--default-box-shadow);
+
+    --ql-title-color: var(--default-white);
+}
+
+img {
+    max-width: 100%;
+}
+
+a {
+    text-decoration: none;
+}
+
+@media only screen and (min-width: 50.99rem) {
+    body.login-page {
+        background: url('/assets/login-background.png') 50% 50% no-repeat;
+        background-size: cover;
+        height: 100vh;
+        width: 100%;
+    }
+
+    .login-page #g-page-surround {
+        height: 100%;
+        width: 100%;
+    }
+
+    .login-page #g-container-main {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .login-page .login-wrapper {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .login-page .login-wrapper .login-info {
+        flex: 3;
+        background: rgba(255,255,255,.9);
+        padding: 2rem 4rem;
+        border-radius: .5rem;
+    }
+
+    .login-page .login-wrapper .login-info h1 {
+        font-size: 4rem;
+        margin: 0;
+        padding: 0;
+    }
+
+    .login-page .login-wrapper .login-info h6 {
+        font-size: 3rem;
+        margin: 0;
+        padding: 0;
+    }
+
+    .login-page .login-wrapper .login-form {
+        flex: 1;
+        border-radius: .5rem;
+        background: rgba(255,255,255,.3);
+        backdrop-filter: blur(6px);
+        padding: 2rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+
+    .login-page .login-wrapper .login-form input {
+        border: none;
+        padding: .75rem .5rem;
+        border-radius: .5rem;
+        background: rgba(255,255,255,.8);
+        backdrop-filter: blur(4px);
+    }
+
+    .login-page .login-wrapper .login-form button {
+        width: 100%;
+        background: #3D64FF;
+        color: var(--default-white);
+        padding: .75rem 0;
+        border: none;
+        border-radius: .5rem;
+        box-shadow: var(--default-box-shadow);
+    }
+
+    .login-page .login-info-logo img {
+        height: 8rem;
+        width: 8rem;
+    }
+
+    body.signup-page {
+        background: url('/assets/login-background.png') 50% 50% no-repeat;
+        background-size: cover;
+        height: 100vh;
+        width: 100%;
+    }
+
+    .signup-page #g-page-surround {
+        height: 100%;
+        width: 100%;
+    }
+
+    .signup-page #g-container-main {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .signup-page .login-wrapper {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .signup-page .login-wrapper .login-info {
+        flex: 3;
+        background: rgba(255,255,255,.9);
+        padding: 2rem 4rem;
+        border-radius: .5rem;
+    }
+
+    .signup-page .login-wrapper .login-info h1 {
+        font-size: 4rem;
+        margin: 0;
+        padding: 0;
+    }
+
+    .signup-page .login-wrapper .login-info h6 {
+        font-size: 3rem;
+        margin: 0;
+        padding: 0;
+    }
+
+    .signup-page .login-wrapper .login-form {
+        flex: 1;
+        border-radius: .5rem;
+        background: rgba(255,255,255,.3);
+        backdrop-filter: blur(6px);
+        padding: 2rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+
+    .signup-page .login-wrapper .login-form input {
+        border: none;
+        padding: .75rem .5rem;
+        border-radius: .5rem;
+        background: rgba(255,255,255,.8);
+        backdrop-filter: blur(4px);
+        margin-bottom: .5rem;
+    }
+
+    .signup-page .login-wrapper .login-form button {
+        width: 100%;
+        background: #3D64FF;
+        color: var(--default-white);
+        padding: .75rem 0;
+        border: none;
+        border-radius: .5rem;
+        box-shadow: var(--default-box-shadow);
+    }
+
+    .signup-page .login-info-logo img {
+        height: 8rem;
+        width: 8rem;
+    }
+
+    body {
+        margin: 0;
+        background: #F1F2F6;
+    }
+
+    #g-sidenav {
+        position: fixed;
+        top: .5rem;
+        left: .5rem;
+        bottom: .5rem;
+        width: 5rem;
+        max-width: 500px;
+        height: calc(100% - 1rem);
+        background: var(--dark-color);
+        overflow: hidden;
+        border-radius: 1rem;
+        box-shadow: inset var(--default-box-shadow);
+        transition: .3s all ease-in-out;
+    }
+
+    #g-sidenav.sidebar-open {
+        width: 15rem;
+    }
+
+    #g-sidenav:hover {
+        width: 15rem;
+    }
+
+    #g-sidenav p {
+        margin: 0;
+        padding: 0;
+    }
+
+    #g-sidenav > #side-menu-placeholder {
+        height: 100%;
+        width: 100%;
+    }
+
+    #g-sidenav .side-nav-wrapper {
+        height: calc(100% - 2rem);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+    }
+
+    #g-sidenav .side-options {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    #g-sidenav .side-nav-logo img {
+        height: 3rem;
+        width: 3rem;
+    }
+
+    #g-sidenav .side-nav-logo-title :is(h1,h2,h3,h4,h5,h6) {
+        margin: 0;
+        padding: 0;
+        text-wrap: nowrap;
+        color: var(--default-white);
+    }
+
+    #g-sidenav .side-nav-items {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    #g-sidenav .side-nav-item {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: center;
+        font-size: 2rem;
+        color: #f1f2f2;
+    }
+
+    #g-sidenav .side-nav-item-icon {
+        width: 3rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    #g-sidenav .side-nav-item-link {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        font-size: 2rem;
+        color: #f1f2f2;
+        gap: 1rem;
+    }
+
+    #g-sidenav .side-nav-item h4 {
+        margin: 0;
+        padding: 0;
+        font-size: 1rem;
+        text-wrap: nowrap;
+        line-height: 1rem;
+    }
+
+    #g-sidenav .side-nav-logo {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 1rem;
+        /*pointer-events: none;*/
+    }
+
+    #g-sidenav .side-nav-toggle {
+        color: var(--default-white);
+    }
+
+    #g-sidenav .side-nav-toggle:hover {
+        cursor: pointer;
+    }
+
+    #g-sidenav .side-nav-logo-title {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        width:100%;
+    }
+
+    #g-sidenav .side-profile {
+        width: 100%;
+        display: flex;
+        justify-content: flex-start;
+    }
+
+    #g-sidenav .user-profile-image {
+        border-radius: .5rem;
+        overflow: hidden;
+        display: flex;
+        width: 3rem;
+        height: 3rem;
+    }
+
+    #g-sidenav .user-profile-image img {
+        height: 100%;
+        width: 100%;
+        object-position: center;
+        object-fit: cover;
+    }
+
+    #g-utility {
+        padding-left: calc(5rem + 2rem);
+        transition: .3s all ease-in-out;
+    }
+
+    #g-utility.sidebar-open {
+        padding-left: calc(15rem + 2rem);
+    }
+
+    #g-container-main {
+        padding-left: calc(5rem + 2rem);
+        margin-top: .5rem;
+        margin-right: .5rem;
+        transition: .3s all ease-in-out;
+    }
+
+    #g-container-main.sidebar-open {
+        padding-left: calc(15rem + 2rem);
+    }
+
+    /* The Modal (background) */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgb(0,0,0); /* Fallback color */
+        background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    }
+
+    /* Modal Content */
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%; /* Could be more or less, depending on screen size */
+    }
+
+    /* The Close Button */
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .breadcrumbs {
+        padding: 10px 0;
+        list-style: none;
+    }
+    
+    .breadcrumbs a {
+        color: #0275d8;
+        text-decoration: none;
+    }
+    
+    .breadcrumbs span {
+        color: #666;
+    }
+
+    .all-sites-page #g-utility {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: .5rem;
+        margin-right: .5rem;
+    }
+
+    .all-sites-page #g-utility :is(h1,h2,h3,h4,h5,h6) {
+        margin: 0;
+        padding: 0;
+    }
+
+    .all-sites-page .search-and-add-button {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .all-sites-page .search-container {
+        margin: 10px;
+    }
+    
+    .all-sites-page .search-container input {
+        padding: 5px;
+        width: 200px; /* Adjust as needed */
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+
+    .all-sites-page .sort-header {
+        cursor: pointer;
+        color: #0275d8;
+        font-weight: bold;
+        background: #abacab;
+        padding: 1rem;
+    }
+    
+    /*.all-sites-page .sort-header:hover {
+        text-decoration: underline;
+    }*/
+
+    .all-sites-page .site-favicon {
+        vertical-align: middle;
+    }
+
+    .all-sites-page #site-codes-container {
+        display: flex;
+        flex-direction: column;
+        overflow-y: scroll;
+        overflow-x: clip;
+        height: 100%;
+        max-height: 91vh;
+    }
+
+    .all-sites-page .site-code-entry {
+        border-bottom: 1px solid #abacab;
+        position: relative;
+        min-height: 2rem;
+        padding: 1rem;
+    }
+
+    .all-sites-page .site-code-entry:hover {
+        background: #f1f2f2;
+    }
+
+    .all-sites-page .site-code-entry > a {
+        position: absolute;
+        font-size: 1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 100%;
+        width: 100%;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        flex-direction: row;
+        gap: 1rem;
+    }
+
+    .all-sites-page .site-code-image {
+        height: 1.5rem;
+        width: 1.5rem;
+        border-radius: 50%;
+        box-shadow: 0px 0px 5px rgba(0,0,0,.25);
+        overflow: hidden;
+    }
+
+    .all-sites-page .site-code-image img {
+        height: 100%;
+        width: 100%;
+        object-position: center;
+        object-fit: cover;
+    }
+
+    .all-sites-page .sort-container {
+        border-radius: 1rem;
+        overflow: hidden;
+        border: 1px solid var(--dark-color);
+        /*height: 93vh;*/
+        max-height: 93vh;
+    }
+
+    .user-profile-link {
+        display: flex;
+        flex-direction: row;
+        gap: 1rem;
+        text-wrap: nowrap;
+    }
+
+    .user-profile {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .user-profile-text {
+        color: var(--default-white);
+    }
+
+    .user-account-level {
+        color: var(--default-white);
+    }
+}
+
+@media only screen and (max-width: 50.99rem) {
+    body {
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    h1 {
+        font-size: 2rem;
+        text-align: center;
+    }
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 1vw;
+        width: calc(100% - 2rem);
+    }
+
+    form > input {
+        width: 100%;
+        font-size: 1rem;
+    }
+}
+
+@media only screen and (min-width: 50.99rem) {
+    .profile-page .dropdown {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ccc;
+        margin-top: 5px;
+    }
+
+    .profile-page .site-option {
+        padding: 8px;
+        cursor: pointer;
+    }
+
+    .profile-page .site-option:hover {
+        background-color: #f0f0f0;
+    }
+
+    .profile-page #selected-sites {
+        margin-top: 10px;
+    }
+
+    .profile-page .selected-site {
+        display: inline-block;
+        background-color: #ddd;
+        margin: 5px;
+        padding: 5px;
+        border-radius: 4px;
+    }
+
+    .profile-page .remove-site {
+        margin-left: 8px;
+        color: red;
+        cursor: pointer;
+    }
+
+    .profile-page .remove-site:hover {
+        text-decoration: underline;
+    }
+}

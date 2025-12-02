@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/style.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="./assets/favicon.png" type="image/x-icon">
+    <title>Signup</title>
+</head>
+<body class="signup-page">
+    <div id="g-page-surround">
+        <section id="g-top"></section>
+        <section id="g-navigation"></section>
+        <section id="g-header"></section>
+        <section id="g-utility"></section>
+        <section id="g-container-main">
+            <div class="login-wrapper">
+                <div class="login-info">
+                    <div class="login-info-box">
+                        <div class="login-info-logo">
+                            <img src="/assets/logo1.png" alt="login logo" />
+                        </div>
+                        <div class="login-info-title">
+                            <h1>Beacon</h1>
+                            <h6>A Solutio App</h6>
+                        </div>
+                        <div class="login-info-text">
+                            <p>Send push notifications to your websites PWA!</p>
+                        </div>
+                    </div>
+                </div>
+            <div class="login-form">
+                <h2>Signup</h2>
+                    <form action="/signup" method="post">
+                        <!-- First Name Field -->
+                        <input type="text" id="firstName" name="first_name" placeholder="First Name" required><br>
+                    
+                        <!-- Last Name Field -->
+                        <input type="text" id="lastName" name="last_name" placeholder="Last Name" required><br>
+                    
+                        <!-- Username Field -->
+                        <input type="text" id="username" name="username" placeholder="Username" required><br>
+                    
+                        <!-- Password Field -->
+                        <input type="password" id="password" name="password" placeholder="Password" required><br>
+                    
+                        <!-- Email Field -->
+                        <input type="email" id="email" name="email" placeholder="Email" required><br>
+                    
+                        <button type="submit">Sign Up</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+        <section id="g-container-footer"></section>
+        <section id="g-topnav">
+            
+        </section>
+        <!--<section id="g-sidenav">
+            <div id="side-menu-placeholder"></div>
+        </section>-->
+    </div>
+    <script>
+        // Function to load and insert the side menu
+        /*function loadSideMenu() {
+            const sideMenuPlaceholder = document.getElementById('side-menu-placeholder');
+            const xhr = new XMLHttpRequest();
+            const menuFileName = isAdmin ? 'side-menu-admin.html' : 'side-menu.html'; // Choose the appropriate menu based on isAdmin
+
+            xhr.open('GET', menuFileName, true);
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    // Insert the side menu content into the placeholder
+                    sideMenuPlaceholder.innerHTML = xhr.responseText;
+                }
+            };
+
+            xhr.send();
+        }
+
+        // Assume you have a variable `isAdmin` that indicates whether the user is an admin
+        const isAdmin = true; // Replace with your logic to determine if the user is an admin
+
+        // Call the function to load the side menu
+        loadSideMenu();*/
+    </script>
+</body>
+</html>

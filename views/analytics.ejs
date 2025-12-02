@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/style.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="/assets/favicon.png" type="image/x-icon">
+    <title>User Profile</title>
+</head>
+<body class="profile-page">
+    <div id="g-page-surround">
+        <section id="g-top"></section>
+        <section id="g-navigation"></section>
+        <section id="g-header"></section>
+        <section id="g-utility"></section>
+        <section id="g-container-main">
+            <h1><%= title %></h1>
+            <nav>
+                <% breadcrumbs.forEach(breadcrumb => { %>
+                    <a href="<%= breadcrumb.url %>"><%= breadcrumb.name %></a> <span>></span>
+                <% }) %>
+            </nav>
+
+            <h2><%= message %></h2>
+
+            <% if (isAdmin) { %>
+                <% if (analyticsData.length > 0) { %> 
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Site Code</th>
+                                <th>Total Interactions</th>
+                                <th>Open Count</th>
+                                <th>Click Count</th>
+                                <th>Conversion Count</th>
+                                <th>Active Subscribers</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% analyticsData.forEach(row => { %>
+                                <tr>
+                                    <td><%= row.siteCode %></td>
+                                    <td><%= row.interactions %></td>
+                                    <td><%= row.open_count %></td>
+                                    <td><%= row.click_count %></td>
+                                    <td><%= row.conversion_count %></td>
+                                    <td><%= row.active_subscribers %></td>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                <% } else { %>
+                    <p>No data available for analytics.</p>
+                <% } %>
+            <% } else { %>
+                <p>You do not have permission to view this data.</p>
+            <% } %>
+        </section>
+        <section id="g-container-footer"></section>
+        <section id="g-topnav"></section>
+        <section id="g-sidenav">
+            <div id="side-menu-placeholder"></div>
+        </section>
+    </div>
+
+    <script>
+        // Assuming you have access to user's role in your EJS template
+        var isAdmin = <%= user.role === 'administrator' %>; // This will evaluate to true or false
+    </script> 
+
+    <script>
+        let selectedSites = [];
+
+        // Function to filter the site dropdown based on search input
+        function filterSites() {
+            const searchInput = document.getElementById('search-sites').value.toLowerCase();
+            const siteOptions = document.querySelectorAll('.site-option');
+            siteOptions.forEach(option => {
+                const siteText = option.textContent.toLowerCase();
+                if (siteText.includes(searchInput)) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
+
+        // Function to add selected site to the list of selected sites
+        function addSiteToSelection(siteId, siteCode) {
+            if (!selectedSites.some(site => site.id === siteId)) {
+                selectedSites.push({ id: siteId, code: siteCode });
+                updateSelectedSites();
+            }
+        }
+
+        // Function to remove a site from the selected sites list
+        function removeSiteFromSelection(siteId) {
+            selectedSites = selectedSites.filter(site => site.id !== siteId);
+            updateSelectedSites();
+        }
+
+        // Function to update the display of selected sites
+        function updateSelectedSites() {
+            const selectedSitesContainer = document.getElementById('selected-sites');
+            selectedSitesContainer.innerHTML = '';  // Clear previous selected sites
+
+            selectedSites.forEach(site => {
+                const siteElement = document.createElement('span');
+                siteElement.classList.add('selected-site');
+                siteElement.innerHTML = `${site.code} <span class="remove-site" onclick="removeSiteFromSelection('${site.id}')">x</span>`;
+                selectedSitesContainer.appendChild(siteElement);
+            });
+        }
+    </script>
+
+    <script>
+        // Function to load and insert the side menu
+        function loadSideMenu() {
+            const sideMenuPlaceholder = document.getElementById('side-menu-placeholder');
+            const xhr = new XMLHttpRequest();
+            const menuFileName = isAdmin ? '/side-menu-admin' : '/side-menu'; // Choose the appropriate menu based on isAdmin
+    
+            xhr.open('GET', menuFileName, true);
+    
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    // Insert the side menu content into the placeholder
+                    sideMenuPlaceholder.innerHTML = xhr.responseText;
+    
+                    // After loading the side menu, update the user profile section
+                    updateUserProfileSection();
+                }
+            };
+    
+            xhr.send();
+        }
+
+        function updateUserProfileSection() {
+            fetch('/api/user-profile')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(user => {
+                    const userProfileText = document.querySelector('.user-profile-text');
+                    const userAccountLevel = document.querySelector('.user-account-level');
+                    const userProfileImage = document.querySelector('.user-profile-image-img'); // Select the image element
+
+                    if (userProfileText && userAccountLevel && userProfileImage) {
+                        userProfileText.textContent = user.first_name + ' ' + user.last_name;
+                        userAccountLevel.textContent = user.role;
+                        
+                        // Check if a profile image is available, otherwise set a default image source
+                        if (user.profile_image) {
+                            userProfileImage.src = user.profile_image;
+                        } else {
+                            userProfileImage.src = 'assets/user-icon.png'; // Default image source
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching user data:', error);
+                });
+        }
+
+        // Call this function when the page loads
+        document.addEventListener('DOMContentLoaded', updateUserProfileSection);
+
+        // Call the function to load the side menu
+        loadSideMenu();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const sideNav = document.getElementById('g-sidenav');
+            const containerMain = document.getElementById('g-container-main');
+            const utility = document.getElementById('g-utility');
+
+            if (sideNav && containerMain) {
+                sideNav.addEventListener('mouseenter', function() {
+                    containerMain.classList.add('sidebar-open');
+                    utility.classList.add('sidebar-open');
+                    sideNav.classList.add('sidebar-open');
+            });
+
+                /*sideNav.addEventListener('mouseleave', function() {
+                    containerMain.classList.remove('sidebar-open');
+                    utility.classList.remove('sidebar-open');
+                });*/
+            }
+        });
+    </script>
+</body>
+</html>

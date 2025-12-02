@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/style.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="/assets/favicon.png" type="image/x-icon">
+    <title>Send Notification for <%= siteCode %></title>
+</head>
+<body>
+    <div id="g-page-surround">
+        <% if (errorMessage) { %>
+            <script>
+                alert("<%= errorMessage %>");
+            </script>
+        <% } %>
+        
+        <section id="g-top"></section>
+        <section id="g-navigation"></section>
+        <section id="g-header"></section>
+        <section id="g-utility"></section>
+        <section id="g-container-main">
+            <h1>Send a Notification for <%= siteCode %></h1>
+            <form id="notification-form">
+                <input type="hidden" id="notification-site-identifier" value="<%= siteCode %>">
+                <input type="text" id="notification-title" placeholder="Title"><br>
+                <textarea id="notification-body" placeholder="Body"></textarea><br>
+                <input type="text" id="notification-icon" placeholder="Icon URL"><br>
+                <input type="text" id="notification-badge" placeholder="Badge URL"><br>
+                <input type="text" id="notification-image" placeholder="Image URL"><br>
+                <input type="text" id="notification-tag" placeholder="Tag"><br>
+                <input type="checkbox" id="notification-silent"> Silent<br>
+                <input type="text" id="notification-deep-link" placeholder="Deep Link URL (optional)"><br>
+                <button type="submit">Send Notification</button>
+            </form>
+        </section>
+        <section id="g-container-footer"></section>
+        <section id="g-topnav"></section>
+        <section id="g-sidenav">
+            <div id="side-menu-placeholder"></div>
+        </section>
+    </div>
+
+    <script>
+        // Function to generate a unique notification ID
+        function generateNotificationId() {
+            return 'notif-' + new Date().getTime() + '-' + Math.floor(Math.random() * 1000);
+        }
+
+        // Assuming you have access to user's role in your EJS template
+        var isAdmin = <%= user.role === 'administrator' %>; // This will evaluate to true or false
+    </script>
+
+    <script>
+        document.getElementById('notification-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Generate unique notification ID
+            var notificationId = generateNotificationId();
+
+            var payload = {
+                notificationId: notificationId,  // Include the unique ID
+                siteIdentifier: document.getElementById('notification-site-identifier').value,
+                title: document.getElementById('notification-title').value,
+                body: document.getElementById('notification-body').value,
+                icon: document.getElementById('notification-icon').value,
+                badge: document.getElementById('notification-badge').value,
+                image: document.getElementById('notification-image').value,
+                tag: document.getElementById('notification-tag').value,
+                silent: document.getElementById('notification-silent').checked,
+                url: document.getElementById('notification-deep-link').value
+            };
+
+            console.log('Payload being sent:', payload);
+
+            fetch('/send-notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Notification sent:', data);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        });
+
+        // Function to load and insert the side menu
+        function loadSideMenu() {
+            const sideMenuPlaceholder = document.getElementById('side-menu-placeholder');
+            const xhr = new XMLHttpRequest();
+            const menuFileName = isAdmin ? '/side-menu-admin' : '/side-menu'; // Choose the appropriate menu based on isAdmin
+    
+            xhr.open('GET', menuFileName, true);
+    
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    // Insert the side menu content into the placeholder
+                    sideMenuPlaceholder.innerHTML = xhr.responseText;
+    
+                    // After loading the side menu, update the user profile section
+                    updateUserProfileSection();
+    
+                    const sideNav = document.getElementById('g-sidenav');
+                    const containerMain = document.getElementById('g-container-main');
+                    const utility = document.getElementById('g-utility');
+                    const collapse = document.getElementById('sideToggle');
+    
+                    if (collapse) {
+                        collapse.addEventListener('click', function() {
+                            containerMain.classList.remove('sidebar-open');
+                            utility.classList.remove('sidebar-open');
+                            sideNav.classList.remove('sidebar-open');
+    
+                            // Disable pointer events on sideNav
+                            sideNav.style.pointerEvents = 'none';
+    
+                            // Re-enable pointer events after 0.3 seconds
+                            setTimeout(function() {
+                                sideNav.style.pointerEvents = 'auto';
+                            }, 300); // 300 milliseconds = 0.3 seconds
+                        });
+                    }
+                }
+            };
+    
+            xhr.send();
+        }
+
+        function updateUserProfileSection() {
+            fetch('/api/user-profile')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(user => {
+                    const userProfileText = document.querySelector('.user-profile-text');
+                    const userAccountLevel = document.querySelector('.user-account-level');
+                    const userProfileImage = document.querySelector('.user-profile-image-img'); // Select the image element
+
+                    if (userProfileText && userAccountLevel && userProfileImage) {
+                        userProfileText.textContent = user.first_name + ' ' + user.last_name;
+                        userAccountLevel.textContent = user.role;
+                        
+                        // Check if a profile image is available, otherwise set a default image source
+                        if (user.profile_image) {
+                            userProfileImage.src = user.profile_image;
+                        } else {
+                            userProfileImage.src = 'assets/user-icon.png'; // Default image source
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching user data:', error);
+                });
+        }
+
+        // Call this function when the page loads
+        document.addEventListener('DOMContentLoaded', updateUserProfileSection);
+
+        // Assume you have a variable `isAdmin` that indicates whether the user is an admin
+        //const isAdmin = true; // Replace with your logic to determine if the user is an admin
+
+        // Call the function to load the side menu
+        loadSideMenu();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const sideNav = document.getElementById('g-sidenav');
+            const containerMain = document.getElementById('g-container-main');
+            const utility = document.getElementById('g-utility');
+
+            if (sideNav && containerMain) {
+                sideNav.addEventListener('mouseenter', function() {
+                    containerMain.classList.add('sidebar-open');
+                    utility.classList.add('sidebar-open');
+                    sideNav.classList.add('sidebar-open');
+            });
+
+                /*sideNav.addEventListener('mouseleave', function() {
+                    containerMain.classList.remove('sidebar-open');
+                    utility.classList.remove('sidebar-open');
+                });*/
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+html {
+    font-family: Arial, sans-serif; /* use Arial as the default font family */
+}
+h1, h2, h3, h4, h5, h6 {
+    font-weight: bold;
+    color: #333; /* dark gray */
+}
+a {
+    text-decoration: none;
+    color: blue; /* hyperlink color is blue */
+    transition: 0.3s ease-in-out; /* add a smooth hover effect */
+}
+a:hover {
+    color: purple; /* hover color is purple */
+}
+
+.content-container {
+    max-width: 800px;
+    margin: 40px auto; /* set a reasonable width and center the container */
+}
+.content-container h1, .content-container h2, .content-container h3, .content-container h4, .content-container h5, .content-container h6 {
+    font-weight: bold;
+    color: #333; /* dark gray */
+}
+.content-container p {
+    font-size: 16px;
+    line-height: 24px;
+    margin-bottom: 20px;
+}
+
+img {
+    max-width: 100%;
+}
+
+.board-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #ccc;
+}
+.board-article {
+    background-color: #f0f0f0;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ddd;
+}
+
+.answer {
+    display: none;
+}

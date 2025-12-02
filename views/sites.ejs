@@ -1,0 +1,290 @@
+<!-- public/sites.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/style.css" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="assets/favicon.png" type="image/x-icon">
+    <title>All Sites</title>
+</head>
+<body class="all-sites-page">
+    <div id="g-page-surround">
+        <section id="g-top"></section>
+        <section id="g-navigation"></section>
+        <section id="g-header"></section>
+        <section id="g-utility">
+            <div class="page-title">
+                <div class="breadcrumbs">
+                    <% breadcrumbs.forEach((crumb, index) => { %>
+                        <% if (index < breadcrumbs.length - 1) { %>
+                            <a href="<%= crumb.url %>"><%= crumb.name %></a> &gt;
+                        <% } else { %>
+                            <span><%= crumb.name %></span>
+                        <% } %>
+                    <% }); %>
+                </div>
+                <h1>All Site Codes</h1>
+            </div>
+            <div class="search-and-add-button">
+                <div class="search-container">
+                    <input type="text" id="siteSearch" placeholder="Search site codes...">
+                </div>
+                <div class="add-button-container">
+                    <% if (isAdmin) { %>
+                        <!-- Button to open modal -->
+                        <button id="addSiteCodeBtn">+ Add New SiteCode</button>
+                
+                        <!-- Modal -->
+                        <div id="createPushModal" class="modal">
+                            <!-- Modal content -->
+                            <div class="modal-content">
+                                <span class="close">&times;</span>
+                                <form action="/create-push" method="post">
+                                    <label for="siteCode">Site Code:</label>
+                                    <input type="text" id="siteCode" name="siteCode" required>
+                                    <button type="submit">Submit</button>
+                                </form>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </section>
+        <section id="g-container-main">
+            <div class="sort-container">
+                <div class="sort-header">
+                    <span id="sortByName">Sort by Name</span>
+                </div>
+                <div id="site-codes-container">
+                    <!-- Dynamically generate site code links here -->
+                </div>
+            </div>
+        </section>
+        <section id="g-container-footer"></section>
+        <section id="g-topnav">
+            
+        </section>
+        <section id="g-sidenav">
+            <div id="side-menu-placeholder"></div>
+        </section>
+    </div>
+    <script>
+        fetch('/api/get-all-site-codes') // You need to create this API route
+            .then(response => response.json())
+            .then(sites => {
+                const container = document.getElementById('site-codes-container');
+                sites.forEach(site => {
+                    // Only proceed if the siteCode is valid
+                    if (site.siteCode && site.siteCode.trim() !== '') {
+                        // Create a div for each site code entry
+                        const entryDiv = document.createElement('div');
+                        entryDiv.className = 'site-code-entry';
+
+                        // Create a link for each site code
+                        const link = document.createElement('a');
+                        link.href = `/send-notification/${site.siteCode}`;
+
+                        // Create a div to wrap the image
+                        const imageWrapper = document.createElement('div');
+                        imageWrapper.className = 'site-code-image';
+
+                        // Create an image element for the site favicon
+                        const img = document.createElement('img');
+                        img.src = `https://${site.siteCode}.solutiosoftware.com/images/template/favicon.png`;
+                        img.alt = `${site.siteCode} Favicon`;
+                        img.className = 'site-favicon';
+
+                        // Append the image to the image wrapper
+                        imageWrapper.appendChild(img);
+
+                        // Create an h3 element for the site code title
+                        const title = document.createElement('h3');
+                        title.textContent = site.siteCode;
+                        title.className = 'site-code-title';
+
+                        // Append the image wrapper and title to the link
+                        link.appendChild(imageWrapper);
+                        link.appendChild(title);
+
+                        // Append the link to the entry div
+                        entryDiv.appendChild(link);
+
+                        // Append the entry div to the container
+                        container.appendChild(entryDiv);
+                    }
+                });
+            })
+            .catch(error => console.error('Error:', error));
+
+        // Function to load and insert the side menu
+        function loadSideMenu() {
+            const sideMenuPlaceholder = document.getElementById('side-menu-placeholder');
+            const xhr = new XMLHttpRequest();
+            const menuFileName = isAdmin ? 'side-menu-admin.html' : 'side-menu.html'; // Choose the appropriate menu based on isAdmin
+
+            xhr.open('GET', menuFileName, true);
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    // Insert the side menu content into the placeholder
+                    sideMenuPlaceholder.innerHTML = xhr.responseText;
+
+                    // After loading the side menu, update the user profile section
+                    updateUserProfileSection();
+
+                    const sideNav = document.getElementById('g-sidenav');
+                    const containerMain = document.getElementById('g-container-main');
+                    const utility = document.getElementById('g-utility');
+                    const collapse = document.getElementById('sideToggle');
+
+                    if (collapse) {
+                        collapse.addEventListener('click', function() {
+                            containerMain.classList.remove('sidebar-open');
+                            utility.classList.remove('sidebar-open');
+                            sideNav.classList.remove('sidebar-open');
+
+                            // Disable pointer events on sideNav
+                            sideNav.style.pointerEvents = 'none';
+
+                            // Re-enable pointer events after 0.3 seconds
+                            setTimeout(function() {
+                                sideNav.style.pointerEvents = 'auto';
+                            }, 300); // 300 milliseconds = 0.3 seconds
+                        });
+                    }
+                }
+            };
+
+            xhr.send();
+        }
+
+        function updateUserProfileSection() {
+            fetch('/api/user-profile')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(user => {
+                    const userProfileText = document.querySelector('.user-profile-text');
+                    const userAccountLevel = document.querySelector('.user-account-level');
+                    const userProfileImage = document.querySelector('.user-profile-image-img'); // Select the image element
+
+                    if (userProfileText && userAccountLevel && userProfileImage) {
+                        userProfileText.textContent = user.first_name + ' ' + user.last_name;
+                        userAccountLevel.textContent = user.role;
+                        
+                        // Check if a profile image is available, otherwise set a default image source
+                        if (user.profile_image) {
+                            userProfileImage.src = user.profile_image;
+                        } else {
+                            userProfileImage.src = 'assets/user-icon.png'; // Default image source
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching user data:', error);
+                });
+        }
+
+        // Call this function when the page loads
+        document.addEventListener('DOMContentLoaded', updateUserProfileSection);
+
+        // Assume you have a variable `isAdmin` that indicates whether the user is an admin
+        const isAdmin = true; // Replace with your logic to determine if the user is an admin
+
+        // Call the function to load the side menu
+        loadSideMenu();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const sideNav = document.getElementById('g-sidenav');
+            const containerMain = document.getElementById('g-container-main');
+            const utility = document.getElementById('g-utility');
+
+            if (sideNav && containerMain) {
+                sideNav.addEventListener('mouseenter', function() {
+                    containerMain.classList.add('sidebar-open');
+                    utility.classList.add('sidebar-open');
+                    sideNav.classList.add('sidebar-open');
+            });
+
+                /*sideNav.addEventListener('mouseleave', function() {
+                    containerMain.classList.remove('sidebar-open');
+                    utility.classList.remove('sidebar-open');
+                });*/
+            }
+        });
+
+        // Get the modal
+        var modal = document.getElementById("createPushModal");
+
+        // Get the button that opens the modal
+        var btn = document.getElementById("addSiteCodeBtn");
+
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+
+        // When the user clicks the button, open the modal 
+        btn.onclick = function() {
+            modal.style.display = "block";
+        }
+
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+
+        // When the user clicks anywhere outside of the modal, close it
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+        // Existing code...
+
+        const searchInput = document.getElementById('siteSearch');
+        const siteCodesContainer = document.getElementById('site-codes-container');
+
+        searchInput.addEventListener('input', function(e) {
+            const searchValue = e.target.value.toLowerCase();
+            const siteLinks = siteCodesContainer.getElementsByTagName('a');
+
+            for (let i = 0; i < siteLinks.length; i++) {
+                const siteCode = siteLinks[i].textContent || siteLinks[i].innerText;
+
+                if (siteCode.toLowerCase().indexOf(searchValue) > -1) {
+                    siteLinks[i].style.display = "";
+                } else {
+                    siteLinks[i].style.display = "none";
+                }
+            }
+        });
+
+        let sortAscending = true;
+
+        const sortByName = document.getElementById('sortByName');
+        sortByName.addEventListener('click', function() {
+            const siteEntries = Array.from(siteCodesContainer.getElementsByClassName('site-code-entry'));
+            siteEntries.sort(function(a, b) {
+                const nameA = a.textContent.toLowerCase();
+                const nameB = b.textContent.toLowerCase();
+                if (sortAscending) {
+                    return nameA.localeCompare(nameB);
+                } else {
+                    return nameB.localeCompare(nameA);
+                }
+            });
+
+            siteCodesContainer.innerHTML = '';
+            siteEntries.forEach(entry => siteCodesContainer.appendChild(entry));
+            sortAscending = !sortAscending; // Toggle the sort order for the next click
+        });
+        });
+    </script>
+</body>
+</html>
