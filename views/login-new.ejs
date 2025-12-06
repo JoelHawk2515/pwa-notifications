@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>Login - Beacon</title>
+  <%- include('partials/_head') %>
+  <style>
+    /* Auth Page Specific Styles */
+    .auth-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+      padding: var(--space-lg);
+    }
+
+    .auth-container {
+      width: 100%;
+      max-width: 1000px;
+      background: var(--color-surface);
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-xl);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .auth-sidebar {
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+      padding: var(--space-3xl);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .auth-sidebar-icon {
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-xl);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--space-xl);
+    }
+
+    .auth-sidebar-title {
+      font-size: var(--font-size-3xl);
+      font-weight: var(--font-weight-bold);
+      margin-bottom: var(--space-sm);
+    }
+
+    .auth-sidebar-subtitle {
+      font-size: var(--font-size-sm);
+      opacity: 0.9;
+      margin-bottom: var(--space-xl);
+    }
+
+    .auth-sidebar-description {
+      font-size: var(--font-size-base);
+      opacity: 0.8;
+      line-height: var(--line-height-relaxed);
+    }
+
+    .auth-form-container {
+      padding: var(--space-3xl);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .auth-form-header {
+      margin-bottom: var(--space-2xl);
+    }
+
+    .auth-form-title {
+      font-size: var(--font-size-2xl);
+      font-weight: var(--font-weight-bold);
+      color: var(--color-text);
+      margin-bottom: var(--space-sm);
+    }
+
+    .auth-form-subtitle {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+    }
+
+    .auth-form-footer {
+      margin-top: var(--space-xl);
+      text-align: center;
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+    }
+
+    .auth-form-footer a {
+      color: var(--color-primary);
+      text-decoration: none;
+      font-weight: var(--font-weight-medium);
+    }
+
+    .auth-form-footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .auth-container {
+        grid-template-columns: 1fr;
+      }
+
+      .auth-sidebar {
+        padding: var(--space-xl);
+      }
+
+      .auth-form-container {
+        padding: var(--space-xl);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-page">
+    <div class="auth-container">
+      <!-- Auth Sidebar -->
+      <div class="auth-sidebar">
+        <div class="auth-sidebar-icon">
+          <i data-lucide="zap" style="width: 40px; height: 40px;"></i>
+        </div>
+        <h1 class="auth-sidebar-title">Beacon</h1>
+        <p class="auth-sidebar-subtitle">A Solutio App</p>
+        <p class="auth-sidebar-description">
+          Send powerful push notifications to your website's PWA. 
+          Engage your users with real-time updates and boost engagement.
+        </p>
+      </div>
+
+      <!-- Login Form -->
+      <div class="auth-form-container">
+        <div class="auth-form-header">
+          <h2 class="auth-form-title">Welcome back</h2>
+          <p class="auth-form-subtitle">Sign in to your account to continue</p>
+        </div>
+
+        <% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+        <div class="alert alert-error mb-lg">
+          <%= errorMessage %>
+        </div>
+        <% } %>
+
+        <form action="/login" method="POST">
+          <div class="form-group">
+            <label for="username" class="form-label form-label-required">Username</label>
+            <input 
+              type="text" 
+              id="username" 
+              name="username" 
+              class="form-input" 
+              placeholder="Enter your username"
+              required 
+              autofocus
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="password" class="form-label form-label-required">Password</label>
+            <input 
+              type="password" 
+              id="password" 
+              name="password" 
+              class="form-input" 
+              placeholder="Enter your password"
+              required
+            >
+          </div>
+
+          <div class="form-group">
+            <div class="form-check">
+              <input type="checkbox" id="remember" name="remember" class="form-check-input">
+              <label for="remember" class="form-check-label">Remember me</label>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-full btn-lg">
+            <i data-lucide="log-in" style="width: 20px; height: 20px;"></i>
+            Sign In
+          </button>
+        </form>
+
+        <div class="auth-form-footer">
+          Don't have an account? <a href="/signup">Sign up</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Initialize Lucide icons -->
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>

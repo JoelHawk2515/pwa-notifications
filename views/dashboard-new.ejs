@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>Dashboard - Beacon</title>
+  <%- include('partials/_head') %>
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Sidebar Navigation -->
+    <%- include('partials/_sidebar', { user: user, currentPath: '/dashboard' }) %>
+    
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Topbar -->
+      <%- include('partials/_topbar', { user: user, pageTitle: 'Dashboard' }) %>
+      
+      <!-- Page Content -->
+      <div class="page-container">
+        <!-- Alert Message -->
+        <% if (message) { %>
+        <div class="alert alert-info">
+          <%= message %>
+        </div>
+        <% } %>
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-top">
+            <div>
+              <h1 class="page-title">Welcome back, <%= user.name || 'User' %>!</h1>
+              <p class="page-description">Here's an overview of your notification activity</p>
+            </div>
+            <div class="page-actions">
+              <button id="btn-test-send" class="btn btn-secondary">
+                <i data-lucide="send" style="width: 16px; height: 16px;"></i>
+                Send Test Notification
+              </button>
+              <% if (user && user.role === 'administrator') { %>
+              <a href="/send-notification/<%= user.site_identifier || 'localhost' %>" class="btn btn-primary">
+                <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                Compose Notification
+              </a>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-4 mb-lg">
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-title">Total Subscribers</span>
+              <div class="stat-card-icon">
+                <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+              </div>
+            </div>
+            <div class="stat-card-value" id="stat-subscribers">-</div>
+            <div class="stat-card-change positive">
+              <i data-lucide="trending-up" style="width: 16px; height: 16px;"></i>
+              <span>Loading...</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-title">Notifications Sent</span>
+              <div class="stat-card-icon" style="background-color: var(--color-success-light); color: var(--color-success);">
+                <i data-lucide="send" style="width: 20px; height: 20px;"></i>
+              </div>
+            </div>
+            <div class="stat-card-value" id="stat-sent">-</div>
+            <div class="stat-card-change positive">
+              <i data-lucide="trending-up" style="width: 16px; height: 16px;"></i>
+              <span>This week</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-title">Click Rate</span>
+              <div class="stat-card-icon" style="background-color: var(--color-warning-light); color: var(--color-warning);">
+                <i data-lucide="mouse-pointer-click" style="width: 20px; height: 20px;"></i>
+              </div>
+            </div>
+            <div class="stat-card-value" id="stat-ctr">-</div>
+            <div class="stat-card-change positive">
+              <i data-lucide="trending-up" style="width: 16px; height: 16px;"></i>
+              <span>+2.3%</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-title">Active Today</span>
+              <div class="stat-card-icon" style="background-color: var(--color-info-light); color: var(--color-info);">
+                <i data-lucide="activity" style="width: 20px; height: 20px;"></i>
+              </div>
+            </div>
+            <div class="stat-card-value" id="stat-active">-</div>
+            <div class="stat-card-change">
+              <span>Real-time</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions Grid -->
+        <div class="grid grid-cols-3">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i data-lucide="bell" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                Notification Center
+              </h3>
+            </div>
+            <div class="card-body">
+              <p class="text-secondary mb-md">Monitor and manage your notification campaigns</p>
+              <a href="/notification-center" class="btn btn-secondary w-full">
+                View Notifications
+                <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+              </a>
+            </div>
+          </div>
+
+          <% if (user && user.role === 'administrator') { %>
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i data-lucide="trending-up" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                Analytics
+              </h3>
+            </div>
+            <div class="card-body">
+              <p class="text-secondary mb-md">Track engagement and performance metrics</p>
+              <a href="/analytics-dashboard" class="btn btn-secondary w-full">
+                View Analytics
+                <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+              </a>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i data-lucide="users" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                Subscribers
+              </h3>
+            </div>
+            <div class="card-body">
+              <p class="text-secondary mb-md">Manage your audience and segments</p>
+              <a href="/subscribers-dashboard" class="btn btn-secondary w-full">
+                Manage Subscribers
+                <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+              </a>
+            </div>
+          </div>
+          <% } %>
+        </div>
+
+        <!-- Test Status -->
+        <div id="test-send-status" class="mt-lg"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Push Registration Script -->
+  <script>
+    // Inject public VAPID key for client registration
+    window.PUBLIC_VAPID_KEY = '<%= urlSafePublicVapidKey || "" %>';
+    
+    // Set site identifier
+    (function(){
+      var meta = document.createElement('meta');
+      meta.setAttribute('name','site-identifier');
+      meta.setAttribute('content', '<%= (user && user.site_identifier) ? user.site_identifier : "" %>');
+      document.head.appendChild(meta);
+    })();
+    
+    // Auto register push on dashboard load
+    (function(){
+      var s = document.createElement('script');
+      s.src = '/register-push.js';
+      document.body.appendChild(s);
+    })();
+
+    // Initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    // Test send functionality
+    (function(){
+      function getSiteIdentifier(){
+        var m = document.querySelector('meta[name="site-identifier"]');
+        return m && m.content ? m.content : '';
+      }
+      
+      var btn = document.getElementById('btn-test-send');
+      var statusEl = document.getElementById('test-send-status');
+      
+      if(btn){
+        btn.addEventListener('click', async function(){
+          statusEl.innerHTML = '<div class="alert alert-info">Sending test notification...</div>';
+          try{
+            const siteIdentifier = getSiteIdentifier();
+            const resp = await fetch('/notifications/test', {
+              method: 'POST',
+              headers: { 'Content-Type':'application/json' },
+              body: JSON.stringify({ siteIdentifier })
+            });
+            const json = await resp.json();
+            if(json.success){
+              statusEl.innerHTML = '<div class="alert alert-success">✅ Test notification sent successfully!</div>';
+            } else {
+              statusEl.innerHTML = '<div class="alert alert-error">❌ ' + (json.message || 'Failed to send') + '</div>';
+            }
+          } catch(e){
+            statusEl.innerHTML = '<div class="alert alert-error">❌ Error: ' + e.message + '</div>';
+          }
+          setTimeout(() => { statusEl.innerHTML = ''; }, 5000);
+        });
+      }
+
+      // Load dashboard stats
+      async function loadStats() {
+        try {
+          const resp = await fetch('/api/analytics/realtime');
+          if (resp.ok) {
+            const data = await resp.json();
+            document.getElementById('stat-subscribers').textContent = data.subscribers || '-';
+            document.getElementById('stat-sent').textContent = data.sent || '-';
+            document.getElementById('stat-ctr').textContent = (data.ctr || 0) + '%';
+            document.getElementById('stat-active').textContent = data.active || '-';
+          }
+        } catch(e) {
+          console.error('Failed to load stats:', e);
+        }
+      }
+
+      loadStats();
+      setInterval(loadStats, 30000); // Refresh every 30 seconds
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title><%= pageTitle ? pageTitle + ' - Beacon' : 'Beacon - PWA Notifications' %></title>
+  <%- include('../partials/_head') %>
+  
+  <!-- Page-specific styles -->
+  <% if (typeof additionalStyles !== 'undefined') { %>
+    <%- additionalStyles %>
+  <% } %>
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Sidebar Navigation -->
+    <%- include('../partials/_sidebar', { user: user, currentPath: typeof currentPath !== 'undefined' ? currentPath : '' }) %>
+    
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Topbar -->
+      <%- include('../partials/_topbar', { user: user, pageTitle: pageTitle || 'Dashboard' }) %>
+      
+      <!-- Page Content -->
+      <div class="page-container">
+        <!-- Page-specific content -->
+        <%- body %>
+      </div>
+    </main>
+  </div>
+
+  <!-- Page-specific scripts -->
+  <% if (typeof additionalScripts !== 'undefined') { %>
+    <%- additionalScripts %>
+  <% } %>
+
+  <!-- Initialize Lucide icons -->
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>Advanced Analytics - Beacon</title>
+  <%- include('partials/_head') %>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-wrapper">
+    <%- include('partials/_sidebar', { user: user, currentPath: '/analytics-dashboard' }) %>
+    
+    <main class="main-content">
+      <%- include('partials/_topbar', { user: user, pageTitle: 'Advanced Analytics' }) %>
+      
+      <div class="page-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-top">
+            <div>
+              <h1 class="page-title">Advanced Analytics</h1>
+              <p class="page-description">Deep dive into your notification performance metrics</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary" onclick="window.print()">
+                <i data-lucide="download"></i>
+                Export Report
+              </button>
+              <button class="btn btn-primary" onclick="refreshData()">
+                <i data-lucide="refresh-cw"></i>
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Metrics Grid -->
+        <div class="grid grid-cols-4 mb-lg">
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-title">Total Sent</span>
+              <div class="stat-card-icon">
+                <i data-lucide="send" style="width: 20px; height: 20px;"></i>
+              </div>
+            </div>
+            <div class="stat-card-value" id="totalSent">0</div>
+            <div class="stat-card-change positive">
+              <i data-lucide="trending-up" style="width: 16px; height: 16px;"></i>
+              <span id="sentChange">+0%</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-title">Open Rate</span>
+              <div class="stat-card-icon" style="background-color: var(--color-success-light); color: var(--color-success);">
+                <i data-lucide="eye" style="width: 20px; height: 20px;"></i>
+              </div>
+            </div>
+            <div class="stat-card-value" id="openRate">0%</div>
+            <div class="stat-card-change positive">
+              <i data-lucide="trending-up" style="width: 16px; height: 16px;"></i>
+              <span id="openChange">+0%</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-title">Click Rate</span>
+              <div class="stat-card-icon" style="background-color: var(--color-warning-light); color: var(--color-warning);">
+                <i data-lucide="mouse-pointer-click" style="width: 20px; height: 20px;"></i>
+              </div>
+            </div>
+            <div class="stat-card-value" id="clickRate">0%</div>
+            <div class="stat-card-change">
+              <span id="clickChange">+0%</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-title">Conversion Rate</span>
+              <div class="stat-card-icon" style="background-color: var(--color-info-light); color: var(--color-info);">
+                <i data-lucide="target" style="width: 20px; height: 20px;"></i>
+              </div>
+            </div>
+            <div class="stat-card-value" id="conversionRate">0%</div>
+            <div class="stat-card-change positive">
+              <i data-lucide="trending-up" style="width: 16px; height: 16px;"></i>
+              <span id="conversionChange">+0%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="grid grid-cols-2 mb-lg">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i data-lucide="trending-up" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                Time Series
+              </h3>
+            </div>
+            <div class="card-body">
+              <canvas id="timeSeriesChart" height="300"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i data-lucide="pie-chart" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                Engagement Breakdown
+              </h3>
+            </div>
+            <div class="card-body">
+              <canvas id="engagementChart" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Notifications -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i data-lucide="award" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+              Top Performing Notifications
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table" id="topNotificationsTable">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Opens</th>
+                    <th>Clicks</th>
+                    <th>CTR</th>
+                    <th>Sent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="5" class="text-center">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    const siteIdentifier = '<%= user && user.site_identifier ? user.site_identifier : "localhost" %>';
+    let timeSeriesChart, engagementChart;
+
+    async function loadAnalytics() {
+      try {
+        const response = await fetch(`/api/analytics?site_identifier=${siteIdentifier}`);
+        const data = await response.json();
+
+        if (data.metrics) {
+          document.getElementById('totalSent').textContent = data.metrics.total_sent || 0;
+          document.getElementById('openRate').textContent = (data.metrics.open_rate || 0) + '%';
+          document.getElementById('clickRate').textContent = (data.metrics.click_rate || 0) + '%';
+          document.getElementById('conversionRate').textContent = (data.metrics.conversion_rate || 0) + '%';
+        }
+
+        if (data.timeSeries && data.timeSeries.length > 0) {
+          renderTimeSeriesChart(data.timeSeries);
+        }
+
+        if (data.metrics) {
+          renderEngagementChart(data.metrics);
+        }
+
+        if (data.topNotifications && data.topNotifications.length > 0) {
+          renderTopNotifications(data.topNotifications);
+        }
+      } catch (error) {
+        console.error('Failed to load analytics:', error);
+      }
+    }
+
+    function renderTimeSeriesChart(data) {
+      const ctx = document.getElementById('timeSeriesChart').getContext('2d');
+      const labels = data.map(d => d.date);
+      const sent = data.map(d => d.sent_count);
+      const opens = data.map(d => d.opens);
+      const clicks = data.map(d => d.clicks);
+
+      if (timeSeriesChart) timeSeriesChart.destroy();
+
+      timeSeriesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Sent',
+              data: sent,
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37, 99, 235, 0.1)',
+              tension: 0.4
+            },
+            {
+              label: 'Opens',
+              data: opens,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16, 185, 129, 0.1)',
+              tension: 0.4
+            },
+            {
+              label: 'Clicks',
+              data: clicks,
+              borderColor: '#f59e0b',
+              backgroundColor: 'rgba(245, 158, 11, 0.1)',
+              tension: 0.4
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    function renderEngagementChart(metrics) {
+      const ctx = document.getElementById('engagementChart').getContext('2d');
+
+      if (engagementChart) engagementChart.destroy();
+
+      engagementChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Opens', 'Clicks', 'Conversions'],
+          datasets: [{
+            data: [
+              metrics.total_opens || 0,
+              metrics.total_clicks || 0,
+              metrics.total_conversions || 0
+            ],
+            backgroundColor: ['#10b981', '#f59e0b', '#2563eb']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom'
+            }
+          }
+        }
+      });
+    }
+
+    function renderTopNotifications(notifications) {
+      const tbody = document.querySelector('#topNotificationsTable tbody');
+      tbody.innerHTML = notifications.map(n => `
+        <tr>
+          <td><strong>${n.title || 'Untitled'}</strong></td>
+          <td>${n.opens || 0}</td>
+          <td>${n.clicks || 0}</td>
+          <td>${n.opens > 0 ? ((n.clicks / n.opens) * 100).toFixed(2) : 0}%</td>
+          <td>${new Date(n.sent_at).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    function refreshData() {
+      loadAnalytics();
+    }
+
+    // Load data on page load
+    loadAnalytics();
+  </script>
+</body>
+</html>

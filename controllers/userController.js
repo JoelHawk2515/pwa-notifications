@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const mysql = require('mysql2/promise');
 const { dbConfig } = require('../config/config');
 
@@ -23,9 +23,8 @@ async function registerUser(req, res) {
       return res.status(400).json({ error: 'Username or email already exists' });
     }
 
-    // Hash the user's password securely
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    // Hash the user's password using SHA-256
+    const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
 
     // Insert the new user into the database with a default role ("site-access level")
     const insertQuery = 'INSERT INTO users (first_name, last_name, username, password, email, role) VALUES (?, ?, ?, ?, ?, ?)';
@@ -46,10 +45,9 @@ async function addUser(req, res) {
       return res.status(403).json({ error: 'You must be an administrator to perform this action.' });
     }
   
-    // Hash the user's password securely
+    // Hash the user's password using SHA-256
     const password = 'defaultpassword'; // Or allow for custom password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
   
     try {
       const connection = await connectToDatabase();
@@ -105,16 +103,48 @@ async function getUserProfile(req, res) {
 // Update user details
 async function updateUser(req, res) {
   const { first_name, last_name, username, email } = req.body;
-  const userId = req.session.user.id;
+  const userId = req.session?.user?.id;
 
   try {
+    if (!userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
     const connection = await connectToDatabase();
 
-    // Update the user's information
-    const updateQuery = 'UPDATE users SET first_name = ?, last_name = ?, username = ?, email = ? WHERE id = ?';
-    await connection.query(updateQuery, [first_name, last_name, username, email, userId]);
+    // Load current values to avoid setting required columns to NULL
+    const [rows] = await connection.query('SELECT first_name, last_name, username, email FROM users WHERE id = ?', [userId]);
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const current = rows[0];
 
-    return res.status(200).json({ message: 'User updated successfully' });
+    // Use submitted values when provided; otherwise keep current
+    const nextFirst = typeof first_name === 'string' ? (first_name.trim() || null) : current.first_name;
+    const nextLast = typeof last_name === 'string' ? (last_name.trim() || null) : current.last_name;
+    const nextUsername = typeof username === 'string' && username.trim() ? username.trim() : current.username;
+    const nextEmail = typeof email === 'string' && email.trim() ? email.trim() : current.email;
+
+    // Prevent mandatory fields from becoming null
+    if (!nextUsername || !nextEmail) {
+      return res.status(400).json({ error: 'Username and email cannot be empty' });
+    }
+
+    const updateQuery = 'UPDATE users SET first_name = ?, last_name = ?, username = ?, email = ? WHERE id = ?';
+    console.log('Update user payload:', { nextFirst, nextLast, nextUsername, nextEmail, userId });
+    await connection.query(updateQuery, [nextFirst, nextLast, nextUsername, nextEmail, userId]);
+
+    // Update session user to reflect changes
+    req.session.user.username = nextUsername;
+    req.session.user.first_name = nextFirst;
+    req.session.user.last_name = nextLast;
+    req.session.user.email = nextEmail;
+
+    // For form submissions, redirect back to profile; for JSON requests, return JSON
+    if (req.headers['content-type'] && req.headers['content-type'].includes('application/json')) {
+      return res.status(200).json({ message: 'User updated successfully' });
+    }
+    return res.redirect('/profile');
   } catch (error) {
     console.error('Error updating user:', error);
     return res.status(500).json({ error: 'Internal Server Error' });

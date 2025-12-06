@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>Notification Center - Beacon</title>
+  <%- include('partials/_head') %>
+</head>
+<body>
+  <div class="app-wrapper">
+    <%- include('partials/_sidebar', { user: user, currentPath: '/notification-center' }) %>
+    
+    <main class="main-content">
+      <%- include('partials/_topbar', { user: user, pageTitle: 'Notification Center' }) %>
+      
+      <div class="page-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-top">
+            <div>
+              <h1 class="page-title">Notification Center</h1>
+              <p class="page-description">View and manage all your push notifications</p>
+            </div>
+            <% if (user && user.role === 'administrator') { %>
+            <a href="/send-notification" class="btn btn-primary">
+              <i data-lucide="send" style="width: 16px; height: 16px;"></i>
+              Send Notification
+            </a>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-4 mb-lg">
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background-color: var(--color-primary-light);">
+              <i data-lucide="send" style="color: var(--color-primary);"></i>
+            </div>
+            <div class="stat-card-content">
+              <div class="stat-card-value" id="totalSent">0</div>
+              <div class="stat-card-label">Total Sent</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background-color: #fef3c7;">
+              <i data-lucide="clock" style="color: #f59e0b;"></i>
+            </div>
+            <div class="stat-card-content">
+              <div class="stat-card-value" id="totalScheduled">0</div>
+              <div class="stat-card-label">Scheduled</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background-color: #dcfce7;">
+              <i data-lucide="mouse-pointer-click" style="color: #16a34a;"></i>
+            </div>
+            <div class="stat-card-content">
+              <div class="stat-card-value" id="totalClicks">0</div>
+              <div class="stat-card-label">Total Clicks</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background-color: #e0e7ff;">
+              <i data-lucide="trending-up" style="color: var(--color-secondary);"></i>
+            </div>
+            <div class="stat-card-content">
+              <div class="stat-card-value" id="avgCTR">0%</div>
+              <div class="stat-card-label">Avg CTR</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs mb-md">
+          <button class="tab-btn active" data-tab="history">
+            <i data-lucide="history"></i>
+            History
+          </button>
+          <button class="tab-btn" data-tab="scheduled">
+            <i data-lucide="calendar"></i>
+            Scheduled
+          </button>
+          <button class="tab-btn" data-tab="drafts">
+            <i data-lucide="file-edit"></i>
+            Drafts
+          </button>
+        </div>
+
+        <!-- History Tab -->
+        <div class="tab-content active" id="history-content">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i data-lucide="history" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                Notification History
+              </h3>
+              <div class="flex gap-sm">
+                <input type="text" id="searchHistory" class="form-input" placeholder="Search notifications..." style="width: 300px;">
+                <select id="statusFilter" class="form-select">
+                  <option value="">All Status</option>
+                  <option value="sent">Sent</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div id="historyList">
+                <div style="padding: var(--space-xl); text-align: center;">
+                  <i data-lucide="loader" style="width: 32px; height: 32px; color: var(--color-text-tertiary); animation: spin 1s linear infinite;"></i>
+                  <p style="margin-top: var(--space-md); color: var(--color-text-secondary);">Loading history...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scheduled Tab -->
+        <div class="tab-content" id="scheduled-content">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i data-lucide="calendar" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                Scheduled Notifications
+              </h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div id="scheduledList">
+                <div style="padding: var(--space-xl); text-align: center;">
+                  <i data-lucide="loader" style="width: 32px; height: 32px; color: var(--color-text-tertiary); animation: spin 1s linear infinite;"></i>
+                  <p style="margin-top: var(--space-md); color: var(--color-text-secondary);">Loading scheduled notifications...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drafts Tab -->
+        <div class="tab-content" id="drafts-content">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i data-lucide="file-edit" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                Draft Notifications
+              </h3>
+            </div>
+            <div class="card-body" style="padding: 0;">
+              <div id="draftsList">
+                <div style="padding: var(--space-xl); text-align: center;">
+                  <i data-lucide="inbox" style="width: 48px; height: 48px; color: var(--color-text-tertiary);"></i>
+                  <p style="margin-top: var(--space-md); color: var(--color-text-secondary);">No drafts available</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <style>
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .notification-card {
+      padding: var(--space-lg);
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .notification-card:last-child {
+      border-bottom: none;
+    }
+
+    .notification-card:hover {
+      background: var(--color-bg-secondary);
+    }
+
+    .notification-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      margin-bottom: var(--space-sm);
+    }
+
+    .notification-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      margin-bottom: var(--space-xs);
+    }
+
+    .notification-card-body {
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      margin-bottom: var(--space-md);
+    }
+
+    .notification-card-meta {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      font-size: 13px;
+      color: var(--color-text-tertiary);
+    }
+
+    .notification-card-stats {
+      display: flex;
+      gap: var(--space-lg);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--color-border);
+    }
+
+    .notification-card-stat {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .notification-card-stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+
+    .notification-card-stat-label {
+      font-size: 12px;
+      color: var(--color-text-tertiary);
+    }
+  </style>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tabId = btn.dataset.tab;
+        
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        
+        btn.classList.add('active');
+        document.getElementById(`${tabId}-content`).classList.add('active');
+        
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+      });
+    });
+
+    // Load notification history
+    async function loadHistory() {
+      try {
+        const response = await fetch('/notifications/history');
+        const data = await response.json();
+        
+        const historyList = document.getElementById('historyList');
+        
+        if (data.notifications && data.notifications.length > 0) {
+          historyList.innerHTML = data.notifications.map(notification => {
+            const ctr = notification.sent_count > 0 
+              ? ((notification.click_count / notification.sent_count) * 100).toFixed(1) 
+              : 0;
+            
+            return `
+              <div class="notification-card">
+                <div class="notification-card-header">
+                  <div style="flex: 1;">
+                    <div class="notification-card-title">${notification.title}</div>
+                    <div class="notification-card-body">${notification.body || ''}</div>
+                    <div class="notification-card-meta">
+                      <span><i data-lucide="calendar" style="width: 14px; height: 14px;"></i> ${new Date(notification.created_at).toLocaleString()}</span>
+                      <span><i data-lucide="globe" style="width: 14px; height: 14px;"></i> ${notification.site_identifier || 'N/A'}</span>
+                    </div>
+                  </div>
+                  <span class="badge badge-${notification.status === 'sent' ? 'success' : 'danger'}">${notification.status || 'sent'}</span>
+                </div>
+                <div class="notification-card-stats">
+                  <div class="notification-card-stat">
+                    <div class="notification-card-stat-value">${notification.sent_count || 0}</div>
+                    <div class="notification-card-stat-label">Sent</div>
+                  </div>
+                  <div class="notification-card-stat">
+                    <div class="notification-card-stat-value">${notification.click_count || 0}</div>
+                    <div class="notification-card-stat-label">Clicks</div>
+                  </div>
+                  <div class="notification-card-stat">
+                    <div class="notification-card-stat-value">${ctr}%</div>
+                    <div class="notification-card-stat-label">CTR</div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        } else {
+          historyList.innerHTML = `
+            <div style="padding: var(--space-xl); text-align: center;">
+              <i data-lucide="inbox" style="width: 48px; height: 48px; color: var(--color-text-tertiary);"></i>
+              <p style="margin-top: var(--space-md); color: var(--color-text-secondary);">No notification history yet</p>
+            </div>
+          `;
+        }
+        
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+      } catch (error) {
+        console.error('Error loading history:', error);
+        document.getElementById('historyList').innerHTML = `
+          <div style="padding: var(--space-xl); text-align: center;">
+            <p style="color: var(--color-danger);">Failed to load history</p>
+          </div>
+        `;
+      }
+    }
+
+    // Load scheduled notifications
+    async function loadScheduled() {
+      try {
+        const response = await fetch('/notifications/scheduled');
+        const data = await response.json();
+        
+        const scheduledList = document.getElementById('scheduledList');
+        
+        if (data.notifications && data.notifications.length > 0) {
+          scheduledList.innerHTML = data.notifications.map(notification => `
+            <div class="notification-card">
+              <div class="notification-card-header">
+                <div style="flex: 1;">
+                  <div class="notification-card-title">${notification.title}</div>
+                  <div class="notification-card-body">${notification.body || ''}</div>
+                  <div class="notification-card-meta">
+                    <span><i data-lucide="clock" style="width: 14px; height: 14px;"></i> Scheduled: ${new Date(notification.scheduled_for).toLocaleString()}</span>
+                    <span><i data-lucide="globe" style="width: 14px; height: 14px;"></i> ${notification.site_identifier || 'N/A'}</span>
+                  </div>
+                </div>
+                <div class="flex gap-xs">
+                  <button class="btn btn-sm btn-secondary" onclick="editScheduled('${notification.id}')">
+                    <i data-lucide="edit-2" style="width: 14px; height: 14px;"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger" onclick="cancelScheduled('${notification.id}')">
+                    <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `).join('');
+        } else {
+          scheduledList.innerHTML = `
+            <div style="padding: var(--space-xl); text-align: center;">
+              <i data-lucide="inbox" style="width: 48px; height: 48px; color: var(--color-text-tertiary);"></i>
+              <p style="margin-top: var(--space-md); color: var(--color-text-secondary);">No scheduled notifications</p>
+            </div>
+          `;
+        }
+        
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+      } catch (error) {
+        console.error('Error loading scheduled:', error);
+      }
+    }
+
+    // Load stats
+    async function loadStats() {
+      try {
+        const [historyRes, scheduledRes] = await Promise.all([
+          fetch('/notifications/history'),
+          fetch('/notifications/scheduled')
+        ]);
+        
+        const historyData = await historyRes.json();
+        const scheduledData = await scheduledRes.json();
+        
+        let totalSent = 0;
+        let totalClicks = 0;
+        
+        if (historyData.notifications) {
+          historyData.notifications.forEach(n => {
+            totalSent += n.sent_count || 0;
+            totalClicks += n.click_count || 0;
+          });
+        }
+        
+        const avgCTR = totalSent > 0 ? ((totalClicks / totalSent) * 100).toFixed(1) : 0;
+        
+        document.getElementById('totalSent').textContent = totalSent;
+        document.getElementById('totalScheduled').textContent = scheduledData.notifications ? scheduledData.notifications.length : 0;
+        document.getElementById('totalClicks').textContent = totalClicks;
+        document.getElementById('avgCTR').textContent = avgCTR + '%';
+      } catch (error) {
+        console.error('Error loading stats:', error);
+      }
+    }
+
+    // Search functionality
+    document.getElementById('searchHistory').addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase();
+      const cards = document.querySelectorAll('.notification-card');
+      
+      cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(searchTerm) ? '' : 'none';
+      });
+    });
+
+    // Filter by status
+    document.getElementById('statusFilter').addEventListener('change', function(e) {
+      const status = e.target.value;
+      const cards = document.querySelectorAll('.notification-card');
+      
+      cards.forEach(card => {
+        if (!status) {
+          card.style.display = '';
+        } else {
+          const badge = card.querySelector('.badge');
+          const cardStatus = badge ? badge.textContent.toLowerCase() : '';
+          card.style.display = cardStatus.includes(status) ? '' : 'none';
+        }
+      });
+    });
+
+    function editScheduled(id) {
+      // Implement edit functionality
+      alert('Edit scheduled notification: ' + id);
+    }
+
+    function cancelScheduled(id) {
+      if (confirm('Cancel this scheduled notification?')) {
+        // Implement cancel functionality
+        alert('Cancelled: ' + id);
+        loadScheduled();
+      }
+    }
+
+    // Load data on page load
+    loadHistory();
+    loadScheduled();
+    loadStats();
+  </script>
+</body>
+</html>

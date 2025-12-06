@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const mysql = require('mysql2/promise');
 const { dbConfig } = require('../config/config');
 
@@ -17,9 +17,8 @@ async function registerUser(req, res) {
             return res.status(400).json({ error: 'Username or email already exists' });
         }
 
-        // Hash the user's password securely
-        const saltRounds = 10;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        // Hash the user's password using SHA-256
+        const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
 
         // Insert the new user into the database with a default role ("site-access level")
         const insertQuery = 'INSERT INTO users (first_name, last_name, username, password, email, role) VALUES (?, ?, ?, ?, ?, ?)';
@@ -48,27 +47,39 @@ async function loginUser(req, res) {
         }
 
         const user = userResults[0];
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        const hashedInput = crypto.createHash('sha256').update(password).digest('hex');
+        const isPasswordValid = hashedInput === user.password;
 
         if (!isPasswordValid) {
             return res.status(401).json({ error: 'Invalid username or password' });
         }
 
-        // Store user profile in session
-        req.session.user = {
-            id: user.id,
-            username: user.username,
-            role: user.role,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            profile_image: user.profile_image || null  // Optional, handle missing profile image
-        };
+        // Ensure session is persisted before redirecting
+        req.session.regenerate((err) => {
+            if (err) {
+                console.error('Error regenerating session:', err);
+                return res.status(500).json({ error: 'Internal Server Error' });
+            }
 
-        // Debugging log to confirm session is set
-        console.log('User session after login:', req.session.user);
+            req.session.user = {
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                profile_image: user.profile_image || null
+            };
 
-        // Redirect user to the dashboard
-        return res.redirect('/dashboard');
+            console.log('User session after login:', req.session.user);
+
+            req.session.save((saveErr) => {
+                if (saveErr) {
+                    console.error('Error saving session:', saveErr);
+                    return res.status(500).json({ error: 'Internal Server Error' });
+                }
+                return res.redirect('/dashboard');
+            });
+        });
     } catch (error) {
         console.error('Error during login:', error);
         return res.status(500).json({ error: 'Internal Server Error' });

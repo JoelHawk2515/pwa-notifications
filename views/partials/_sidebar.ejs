@@ -1,0 +1,173 @@
+<!-- Modern Unified Sidebar Navigation -->
+<aside class="sidebar" id="sidebar">
+  <!-- Sidebar Header with Brand -->
+  <div class="sidebar-header">
+    <a href="/dashboard" class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <i data-lucide="zap"></i>
+      </div>
+      <span class="sidebar-brand-text">Beacon</span>
+    </a>
+  </div>
+
+  <!-- Sidebar Navigation -->
+  <nav class="sidebar-nav">
+    <!-- Main Section -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Main</div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-menu-item">
+          <a href="/dashboard" class="sidebar-menu-link <%= currentPath === '/dashboard' ? 'active' : '' %>">
+            <i data-lucide="layout-dashboard" class="sidebar-menu-icon"></i>
+            <span>Dashboard</span>
+          </a>
+        </li>
+        <li class="sidebar-menu-item">
+          <a href="/all-sites" class="sidebar-menu-link <%= currentPath === '/all-sites' ? 'active' : '' %>">
+            <i data-lucide="network" class="sidebar-menu-icon"></i>
+            <span>All Sites</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Notifications Section -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Notifications</div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-menu-item">
+          <a href="/notification-center" class="sidebar-menu-link <%= currentPath === '/notification-center' ? 'active' : '' %>">
+            <i data-lucide="bell" class="sidebar-menu-icon"></i>
+            <span>Notification Center</span>
+          </a>
+        </li>
+        <% if (user && user.role === 'administrator') { %>
+        <li class="sidebar-menu-item">
+          <a href="/send-notification" class="sidebar-menu-link <%= currentPath.includes('/send-notification') ? 'active' : '' %>">
+            <i data-lucide="send" class="sidebar-menu-icon"></i>
+            <span>Compose</span>
+          </a>
+        </li>
+        <% } %>
+      </ul>
+    </div>
+
+    <!-- Analytics Section -->
+    <% if (user && user.role === 'administrator') { %>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Analytics</div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-menu-item">
+          <a href="/analytics" class="sidebar-menu-link <%= currentPath === '/analytics' ? 'active' : '' %>">
+            <i data-lucide="bar-chart-2" class="sidebar-menu-icon"></i>
+            <span>Site Analytics</span>
+          </a>
+        </li>
+        <li class="sidebar-menu-item">
+          <a href="/analytics-dashboard" class="sidebar-menu-link <%= currentPath === '/analytics-dashboard' ? 'active' : '' %>">
+            <i data-lucide="trending-up" class="sidebar-menu-icon"></i>
+            <span>Advanced Analytics</span>
+          </a>
+        </li>
+        <li class="sidebar-menu-item">
+          <a href="/ab-testing" class="sidebar-menu-link <%= currentPath === '/ab-testing' ? 'active' : '' %>">
+            <i data-lucide="git-branch" class="sidebar-menu-icon"></i>
+            <span>A/B Testing</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Audience Section -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Audience</div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-menu-item">
+          <a href="/subscribers-dashboard" class="sidebar-menu-link <%= currentPath === '/subscribers-dashboard' ? 'active' : '' %>">
+            <i data-lucide="users" class="sidebar-menu-icon"></i>
+            <span>Subscribers</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    <% } %>
+
+    <!-- Settings Section -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">Settings</div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-menu-item">
+          <a href="/profile" class="sidebar-menu-link <%= currentPath === '/profile' ? 'active' : '' %>">
+            <i data-lucide="user" class="sidebar-menu-icon"></i>
+            <span>Profile</span>
+          </a>
+        </li>
+        <li class="sidebar-menu-item">
+          <a href="/logout" class="sidebar-menu-link">
+            <i data-lucide="log-out" class="sidebar-menu-icon"></i>
+            <span>Logout</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Sidebar Footer with User Info -->
+  <div class="sidebar-footer">
+    <div class="sidebar-user">
+      <div class="sidebar-user-avatar">
+        <%= user && user.name ? user.name.charAt(0).toUpperCase() : 'U' %>
+      </div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name"><%= user && user.name ? user.name : 'User' %></div>
+        <div class="sidebar-user-role"><%= user && user.role ? user.role : 'User' %></div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- Sidebar Toggle Button (Mobile) -->
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+  <i data-lucide="menu"></i>
+</button>
+
+<!-- Sidebar Overlay (Mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- Sidebar Toggle Script -->
+<script>
+  // Initialize Lucide icons
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+
+  // Mobile sidebar toggle
+  const sidebar = document.getElementById('sidebar');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      sidebarOverlay.classList.toggle('open');
+    });
+  }
+
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', () => {
+      sidebar.classList.remove('open');
+      sidebarOverlay.classList.remove('open');
+    });
+  }
+
+  // Close sidebar on navigation (mobile)
+  const sidebarLinks = document.querySelectorAll('.sidebar-menu-link');
+  sidebarLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      if (window.innerWidth <= 768) {
+        sidebar.classList.remove('open');
+        sidebarOverlay.classList.remove('open');
+      }
+    });
+  });
+</script>

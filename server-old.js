@@ -5,7 +5,6 @@ const webPush = require('web-push');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
-const ROUTE = '/app1';
 const { v4: uuidv4 } = require('uuid');
 const mysql = require('mysql2/promise');
 const crypto = require('crypto');
@@ -17,7 +16,7 @@ const siteRoutes = require('./routes/siteRoutes');
 const userRoutes = require('./routes/userRoutes');
 const { checkUserRole } = require('./middleware/authMiddleware');
 const { dynamicCors } = require('./middleware/corsMiddleware');
-const { dbConfig, secretKey, urlSafePublicVapidKey, urlSafePrivateVapidKey, ROUTE } = require('./config');
+const { dbConfig, secretKey, urlSafePublicVapidKey, urlSafePrivateVapidKey, ROUTE } = require('./config/config');
 
 // Set VAPID details for web-push
 webPush.setVapidDetails(
@@ -52,10 +51,6 @@ app.use(
 // Set EJS as the view engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views')); // Set views folder
-
-// Generate a random secret key
-const secretKey = crypto.randomBytes(32).toString('hex');
-//console.log('Generated Secret Key:', secretKey);
 
 app.options('*', cors()); // include before other routes
 
@@ -733,5 +728,5 @@ function sendTestNotification(subscription) {
         .catch(error => console.error('Error sending test notification:', error));
 }
 
-const PORT = 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT})`));
+const PORT = 3005;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

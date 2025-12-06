@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>A/B Testing - Beacon</title>
+  <%- include('partials/_head') %>
+</head>
+<body>
+  <div class="app-wrapper">
+    <%- include('partials/_sidebar', { user: user, currentPath: '/ab-testing' }) %>
+    
+    <main class="main-content">
+      <%- include('partials/_topbar', { user: user, pageTitle: 'A/B Testing' }) %>
+      
+      <div class="page-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-top">
+            <div>
+              <h1 class="page-title">A/B Testing</h1>
+              <p class="page-description">Create and manage notification A/B tests to optimize performance</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-primary" onclick="showCreateForm()">
+                <i data-lucide="plus"></i>
+                Create New Test
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Create Test Form -->
+        <div class="card mb-lg" id="createTestForm" style="display:none;">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i data-lucide="flask" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+              Create New A/B Test
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="grid grid-cols-2 mb-lg">
+              <div class="form-group">
+                <label for="testName" class="form-label form-label-required">Test Name</label>
+                <input type="text" id="testName" class="form-input" placeholder="e.g., Title Variation Test">
+              </div>
+              <div class="form-group">
+                <label for="trafficSplit" class="form-label">Traffic Split</label>
+                <input type="number" id="trafficSplit" class="form-input" value="0.50" step="0.01" min="0" max="1">
+                <span class="form-hint">0.50 = 50/50 split between variants</span>
+              </div>
+            </div>
+
+            <h4 class="text-lg font-semibold mb-md">Variant A</h4>
+            <div class="grid grid-cols-2 mb-md">
+              <div class="form-group">
+                <label for="aTitle" class="form-label form-label-required">Title</label>
+                <input type="text" id="aTitle" class="form-input" placeholder="Notification title A">
+              </div>
+              <div class="form-group">
+                <label for="aUrl" class="form-label">URL</label>
+                <input type="text" id="aUrl" class="form-input" placeholder="https://example.com/a">
+              </div>
+            </div>
+            <div class="form-group mb-lg">
+              <label for="aBody" class="form-label form-label-required">Body</label>
+              <textarea id="aBody" class="form-textarea" placeholder="Notification body text A"></textarea>
+            </div>
+
+            <h4 class="text-lg font-semibold mb-md">Variant B</h4>
+            <div class="grid grid-cols-2 mb-md">
+              <div class="form-group">
+                <label for="bTitle" class="form-label form-label-required">Title</label>
+                <input type="text" id="bTitle" class="form-input" placeholder="Notification title B">
+              </div>
+              <div class="form-group">
+                <label for="bUrl" class="form-label">URL</label>
+                <input type="text" id="bUrl" class="form-input" placeholder="https://example.com/b">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="bBody" class="form-label form-label-required">Body</label>
+              <textarea id="bBody" class="form-textarea" placeholder="Notification body text B"></textarea>
+            </div>
+          </div>
+          <div class="card-footer">
+            <div class="flex justify-between">
+              <button class="btn btn-secondary" onclick="hideCreateForm()">Cancel</button>
+              <button class="btn btn-primary" onclick="createTest()">Create Test</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Existing Tests -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i data-lucide="list" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+              Active Tests
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table" id="testsTable">
+                <thead>
+                  <tr>
+                    <th>Test Name</th>
+                    <th>Status</th>
+                    <th>Traffic Split</th>
+                    <th>Variant A</th>
+                    <th>Variant B</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="6" class="text-center">Loading tests...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Results Card -->
+        <div class="card mt-lg" id="resultsCard" style="display:none;">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i data-lucide="bar-chart-2" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+              Test Results
+            </h3>
+          </div>
+          <div class="card-body" id="resultsContent">
+            Loading results...
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    const siteIdentifier = '<%= user && user.site_identifier ? user.site_identifier : "localhost" %>';
+
+    function showCreateForm() {
+      document.getElementById('createTestForm').style.display = 'block';
+      document.getElementById('createTestForm').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideCreateForm() {
+      document.getElementById('createTestForm').style.display = 'none';
+      resetForm();
+    }
+
+    function resetForm() {
+      document.getElementById('testName').value = '';
+      document.getElementById('trafficSplit').value = '0.50';
+      document.getElementById('aTitle').value = '';
+      document.getElementById('aBody').value = '';
+      document.getElementById('aUrl').value = '';
+      document.getElementById('bTitle').value = '';
+      document.getElementById('bBody').value = '';
+      document.getElementById('bUrl').value = '';
+    }
+
+    async function createTest() {
+      const testData = {
+        site_identifier: siteIdentifier,
+        test_name: document.getElementById('testName').value,
+        traffic_split: parseFloat(document.getElementById('trafficSplit').value),
+        variant_a: {
+          title: document.getElementById('aTitle').value,
+          body: document.getElementById('aBody').value,
+          url: document.getElementById('aUrl').value
+        },
+        variant_b: {
+          title: document.getElementById('bTitle').value,
+          body: document.getElementById('bBody').value,
+          url: document.getElementById('bUrl').value
+        }
+      };
+
+      try {
+        const response = await fetch('/api/ab-tests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(testData)
+        });
+
+        if (response.ok) {
+          alert('✅ Test created successfully!');
+          hideCreateForm();
+          loadTests();
+        } else {
+          alert('❌ Failed to create test');
+        }
+      } catch (error) {
+        console.error('Error creating test:', error);
+        alert('❌ Error: ' + error.message);
+      }
+    }
+
+    async function loadTests() {
+      try {
+        const response = await fetch(`/api/ab-tests?site_identifier=${siteIdentifier}`);
+        const data = await response.json();
+        
+        const tbody = document.querySelector('#testsTable tbody');
+        if (data.tests && data.tests.length > 0) {
+          tbody.innerHTML = data.tests.map(test => `
+            <tr>
+              <td><strong>${test.test_name}</strong></td>
+              <td><span class="badge badge-${test.status === 'running' ? 'success' : 'warning'}">${test.status}</span></td>
+              <td>${(test.traffic_split * 100).toFixed(0)}% / ${(100 - test.traffic_split * 100).toFixed(0)}%</td>
+              <td>${test.variant_a_sends || 0} sends</td>
+              <td>${test.variant_b_sends || 0} sends</td>
+              <td>
+                ${test.status === 'draft' ? `<button class="btn btn-sm btn-success" onclick="startTest(${test.id})">Start</button>` : ''}
+                ${test.status === 'running' ? `<button class="btn btn-sm btn-secondary" onclick="stopTest(${test.id})">Stop</button>` : ''}
+                <button class="btn btn-sm btn-primary" onclick="viewResults(${test.id})">Results</button>
+              </td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center text-secondary">No tests found. Create your first A/B test!</td></tr>';
+        }
+      } catch (error) {
+        console.error('Error loading tests:', error);
+      }
+    }
+
+    async function startTest(id) {
+      if (!confirm('Start this A/B test?')) return;
+      try {
+        const response = await fetch(`/api/ab-tests/${id}/start`, { method: 'POST' });
+        if (response.ok) {
+          alert('✅ Test started!');
+          loadTests();
+        }
+      } catch (error) {
+        console.error('Error starting test:', error);
+      }
+    }
+
+    async function stopTest(id) {
+      if (!confirm('Stop this A/B test?')) return;
+      try {
+        const response = await fetch(`/api/ab-tests/${id}/stop`, { method: 'POST' });
+        if (response.ok) {
+          alert('✅ Test stopped!');
+          loadTests();
+        }
+      } catch (error) {
+        console.error('Error stopping test:', error);
+      }
+    }
+
+    async function viewResults(id) {
+      try {
+        const response = await fetch(`/api/ab-tests/${id}/results`);
+        const data = await response.json();
+        
+        document.getElementById('resultsCard').style.display = 'block';
+        const resultsContent = document.getElementById('resultsContent');
+        
+        if (data.results) {
+          const r = data.results;
+          resultsContent.innerHTML = `
+            <div class="grid grid-cols-2 gap-lg">
+              <div class="stat-card">
+                <div class="stat-card-title">Variant A</div>
+                <div class="stat-card-value">${r.a_opens || 0} opens</div>
+                <div>${r.a_clicks || 0} clicks</div>
+                <div>CTR: ${r.a_ctr ? (r.a_ctr * 100).toFixed(2) : 0}%</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-title">Variant B</div>
+                <div class="stat-card-value">${r.b_opens || 0} opens</div>
+                <div>${r.b_clicks || 0} clicks</div>
+                <div>CTR: ${r.b_ctr ? (r.b_ctr * 100).toFixed(2) : 0}%</div>
+              </div>
+            </div>
+            ${r.significant ? '<div class="alert alert-success mt-lg">✅ Results are statistically significant!</div>' : '<div class="alert alert-info mt-lg">ℹ️ Not enough data for statistical significance yet</div>'}
+          `;
+        }
+        
+        document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth' });
+      } catch (error) {
+        console.error('Error loading results:', error);
+      }
+    }
+
+    // Load tests on page load
+    loadTests();
+  </script>
+</body>
+</html>

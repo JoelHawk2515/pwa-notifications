@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>All Sites - Beacon</title>
+  <%- include('partials/_head') %>
+</head>
+<body>
+  <div class="app-wrapper">
+    <%- include('partials/_sidebar', { user: user, currentPath: '/all-sites' }) %>
+    
+    <main class="main-content">
+      <%- include('partials/_topbar', { user: user, pageTitle: 'All Sites' }) %>
+      
+      <div class="page-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-top">
+            <div>
+              <h1 class="page-title">All Sites</h1>
+              <p class="page-description">Manage your registered sites and integrations</p>
+            </div>
+            <% if (isAdmin) { %>
+            <button class="btn btn-primary" id="addSiteBtn">
+              <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+              Add Site
+            </button>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-4 mb-lg">
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background-color: var(--color-primary-light);">
+              <i data-lucide="network" style="color: var(--color-primary);"></i>
+            </div>
+            <div class="stat-card-content">
+              <div class="stat-card-value" id="totalSites"><%= sites.length %></div>
+              <div class="stat-card-label">Total Sites</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background-color: #dcfce7;">
+              <i data-lucide="check-circle" style="color: #16a34a;"></i>
+            </div>
+            <div class="stat-card-content">
+              <div class="stat-card-value" id="activeSites">-</div>
+              <div class="stat-card-label">Active Sites</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background-color: #fef3c7;">
+              <i data-lucide="users" style="color: #f59e0b;"></i>
+            </div>
+            <div class="stat-card-content">
+              <div class="stat-card-value" id="totalSubscribers">-</div>
+              <div class="stat-card-label">Total Subscribers</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-icon" style="background-color: #e0e7ff;">
+              <i data-lucide="bell" style="color: var(--color-secondary);"></i>
+            </div>
+            <div class="stat-card-content">
+              <div class="stat-card-value" id="totalNotifications">-</div>
+              <div class="stat-card-label">Notifications Sent</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sites Table -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i data-lucide="list" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+              Registered Sites
+            </h3>
+            <div class="flex gap-sm">
+              <input type="text" id="searchSites" class="form-input" placeholder="Search sites..." style="width: 300px;">
+            </div>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Site Code</th>
+                  <th>Site Identifier</th>
+                  <th>Domains</th>
+                  <th>Subscribers</th>
+                  <th>Last Activity</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="sitesTableBody">
+                <% if (sites && sites.length > 0) { %>
+                  <% sites.forEach(function(site) { %>
+                    <tr>
+                      <td>
+                        <div class="flex align-center gap-sm">
+                          <i data-lucide="globe" style="width: 16px; height: 16px; color: var(--color-primary);"></i>
+                          <strong><%= site.siteCode %></strong>
+                        </div>
+                      </td>
+                      <td><code style="font-size: 13px; background: var(--color-bg-tertiary); padding: 2px 6px; border-radius: 4px;"><%= site.siteIdentifier %></code></td>
+                      <td>
+                        <div class="flex align-center gap-xs">
+                          <span id="domainCount-<%= site.siteIdentifier %>" class="badge badge-secondary">0</span>
+                          <button class="btn btn-sm btn-secondary" onclick="viewDomains('<%= site.siteIdentifier %>')">
+                            <i data-lucide="list" style="width: 14px; height: 14px;"></i>
+                          </button>
+                        </div>
+                      </td>
+                      <td id="subscribers-<%= site.siteIdentifier %>">-</td>
+                      <td id="lastActivity-<%= site.siteIdentifier %>">-</td>
+                      <td>
+                        <span class="badge badge-success" id="status-<%= site.siteIdentifier %>">Active</span>
+                      </td>
+                      <td>
+                        <div class="flex gap-xs">
+                          <button class="btn btn-sm btn-secondary" onclick="viewSiteDetails('<%= site.siteIdentifier %>')">
+                            <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
+                          </button>
+                          <a href="/send-notification/<%= site.siteCode %>" class="btn btn-sm btn-primary">
+                            <i data-lucide="send" style="width: 14px; height: 14px;"></i>
+                          </a>
+                          <% if (isAdmin) { %>
+                          <button class="btn btn-sm btn-danger" onclick="deleteSite('<%= site.siteIdentifier %>')">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                          </button>
+                          <% } %>
+                        </div>
+                      </td>
+                    </tr>
+                  <% }) %>
+                <% } else { %>
+                  <tr>
+                    <td colspan="7" style="text-align: center; padding: var(--space-xl);">
+                      <i data-lucide="inbox" style="width: 48px; height: 48px; color: var(--color-text-tertiary); margin-bottom: var(--space-md);"></i>
+                      <p style="color: var(--color-text-secondary);">No sites registered yet</p>
+                    </td>
+                  </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Site Modal -->
+  <div id="addSiteModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Add New Site</h3>
+        <button class="modal-close" data-close-modal="addSiteModal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="addSiteForm" onsubmit="handleAddSite(event)">
+          <div class="form-group">
+            <label for="siteCode" class="form-label form-label-required">Site Code</label>
+            <input type="text" id="siteCode" name="siteCode" class="form-input" required>
+            <span class="form-hint">A unique identifier for your site (e.g., myapp)</span>
+          </div>
+
+          <div class="form-group">
+            <label for="siteIdentifier" class="form-label form-label-required">Site Identifier</label>
+            <input type="text" id="siteIdentifier" name="siteIdentifier" class="form-input" required>
+            <span class="form-hint">Domain or identifier (e.g., myapp.com)</span>
+          </div>
+
+          <div class="form-group">
+            <label for="siteDescription" class="form-label">Description</label>
+            <textarea id="siteDescription" name="description" class="form-input" rows="3"></textarea>
+          </div>
+
+          <div class="flex justify-end gap-md">
+            <button type="button" class="btn btn-secondary" data-close-modal="addSiteModal">Cancel</button>
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+              Add Site
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Domains Modal -->
+  <div id="domainsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="domainsModalTitle">Manage Domains</h3>
+        <button class="modal-close" onclick="closeDomainsModal()">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="currentSiteIdentifier">
+        
+        <div id="domainsList" style="margin-bottom: var(--space-md);"></div>
+
+        <% if (isAdmin) { %>
+        <div class="form-group" style="margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--color-border);">
+          <label for="newDomain" class="form-label">Add New Domain</label>
+          <div class="flex gap-sm">
+            <input type="text" id="newDomain" class="form-input" placeholder="example.com" style="flex: 1;">
+            <button type="button" class="btn btn-primary" onclick="addDomain()">
+              <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+              Add
+            </button>
+          </div>
+          <span class="form-hint">Enter domain without protocol (e.g., myapp.com)</span>
+        </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    // Modal functions
+    function showAddSiteModal() {
+      console.log('showAddSiteModal called');
+      const modal = document.getElementById('addSiteModal');
+      console.log('Modal element:', modal);
+      if (modal) {
+        modal.classList.add('active');
+        console.log('Added active class, modal should be visible now');
+        // Re-create icons for modal content
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+      } else {
+        console.error('Modal element not found');
+      }
+    }
+
+    function closeAddSiteModal() {
+      const modal = document.getElementById('addSiteModal');
+      if (modal) {
+        modal.classList.remove('active');
+        document.getElementById('addSiteForm').reset();
+      }
+    }
+
+    // Attach event listener to Add Site button
+    function attachModalListeners() {
+      const addSiteBtn = document.getElementById('addSiteBtn');
+      if (addSiteBtn) {
+        console.log('Add Site button found, attaching click listener');
+        addSiteBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          console.log('Add Site button clicked!');
+          showAddSiteModal();
+        });
+      } else {
+        console.log('Add Site button not found (user may not be admin)');
+      }
+
+      // Attach close modal listeners
+      document.querySelectorAll('[data-close-modal]').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const modalId = this.getAttribute('data-close-modal');
+          if (modalId === 'addSiteModal') {
+            closeAddSiteModal();
+          } else if (modalId === 'domainsModal') {
+            closeDomainsModal();
+          }
+        });
+      });
+    }
+
+    // Run immediately if DOM is already loaded, otherwise wait
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attachModalListeners);
+    } else {
+      attachModalListeners();
+    }
+
+    // Load site stats
+    async function loadSiteStats() {
+      try {
+        const sites = JSON.parse('<%- JSON.stringify(sites).replace(/</g, "\\u003c") %>');
+        let totalSubscribers = 0;
+        let totalNotifications = 0;
+        let activeSites = 0;
+
+        for (const site of sites) {
+          try {
+            // Fetch subscriber count for each site
+            const subResponse = await fetch(`/api/subscribers?site_identifier=${site.siteIdentifier}`);
+            const subData = await subResponse.json();
+            const subCount = subData.subscribers ? subData.subscribers.length : 0;
+            
+            document.getElementById(`subscribers-${site.siteIdentifier}`).textContent = subCount;
+            totalSubscribers += subCount;
+            
+            if (subCount > 0) activeSites++;
+
+            // Update last activity (placeholder for now)
+            document.getElementById(`lastActivity-${site.siteIdentifier}`).textContent = 'Recently';
+          } catch (err) {
+            console.error('Error loading site stats:', err);
+            document.getElementById(`subscribers-${site.siteIdentifier}`).textContent = '0';
+          }
+        }
+
+        document.getElementById('activeSites').textContent = activeSites;
+        document.getElementById('totalSubscribers').textContent = totalSubscribers;
+        document.getElementById('totalNotifications').textContent = '-';
+      } catch (error) {
+        console.error('Error loading site statistics:', error);
+      }
+    }
+
+    // Search functionality
+    document.getElementById('searchSites').addEventListener('input', function(e) {
+      const searchTerm = e.target.value.toLowerCase();
+      const rows = document.querySelectorAll('#sitesTableBody tr');
+      
+      rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+      });
+    });
+
+    async function handleAddSite(event) {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const data = Object.fromEntries(formData);
+
+      try {
+        const response = await fetch('/api/sites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          alert('Site added successfully!');
+          closeAddSiteModal();
+          location.reload();
+        } else {
+          const error = await response.json();
+          alert('Error: ' + (error.message || 'Failed to add site'));
+        }
+      } catch (error) {
+        console.error('Error adding site:', error);
+        alert('Failed to add site');
+      }
+    }
+
+    function viewSiteDetails(siteIdentifier) {
+      // Navigate to analytics or detail page
+      window.location.href = `/analytics?site=${siteIdentifier}`;
+    }
+
+    function deleteSite(siteIdentifier) {
+      if (!confirm('Are you sure you want to delete this site?')) return;
+
+      fetch(`/api/sites/${siteIdentifier}`, { method: 'DELETE' })
+        .then(response => {
+          if (response.ok) {
+            alert('Site deleted successfully');
+            location.reload();
+          } else {
+            alert('Failed to delete site');
+          }
+        })
+        .catch(err => {
+          console.error('Error deleting site:', err);
+          alert('Failed to delete site');
+        });
+    }
+
+    function viewDomains(siteIdentifier) {
+      fetch(`/api/sites/${siteIdentifier}/domains`)
+        .then(response => response.json())
+        .then(data => {
+          showDomainsModal(siteIdentifier, data.domains);
+        })
+        .catch(err => {
+          console.error('Error fetching domains:', err);
+          alert('Failed to load domains');
+        });
+    }
+
+    function showDomainsModal(siteIdentifier, domains) {
+      const modal = document.getElementById('domainsModal');
+      const title = document.getElementById('domainsModalTitle');
+      const list = document.getElementById('domainsList');
+      
+      title.textContent = `Domains for ${siteIdentifier}`;
+      list.innerHTML = '';
+
+      if (domains.length === 0) {
+        list.innerHTML = '<p style="color: var(--color-text-secondary); text-align: center; padding: var(--space-md);">No domains configured</p>';
+      } else {
+        domains.forEach(domain => {
+          const item = document.createElement('div');
+          item.className = 'flex align-center justify-between';
+          item.style.padding = 'var(--space-sm)';
+          item.style.border = '1px solid var(--color-border)';
+          item.style.borderRadius = 'var(--radius-md)';
+          item.style.marginBottom = 'var(--space-xs)';
+          
+          const domainHtml = `<span style="font-family: monospace;">${domain.domain}</span>`;
+          <% if (isAdmin) { %>
+          const deleteBtn = `<button class="btn btn-sm btn-danger" onclick="deleteDomain('${siteIdentifier}', ${domain.id})">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+          </button>`;
+          item.innerHTML = domainHtml + deleteBtn;
+          <% } else { %>
+          item.innerHTML = domainHtml;
+          <% } %>
+          
+          list.appendChild(item);
+        });
+      }
+
+      document.getElementById('currentSiteIdentifier').value = siteIdentifier;
+      modal.style.display = 'flex';
+      lucide.createIcons();
+    }
+
+    function closeDomainsModal() {
+      document.getElementById('domainsModal').style.display = 'none';
+    }
+
+    function addDomain() {
+      const siteIdentifier = document.getElementById('currentSiteIdentifier').value;
+      const domain = document.getElementById('newDomain').value.trim();
+      
+      if (!domain) {
+        alert('Please enter a domain');
+        return;
+      }
+
+      fetch(`/api/sites/${siteIdentifier}/domains`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain })
+      })
+        .then(response => {
+          if (response.ok) {
+            document.getElementById('newDomain').value = '';
+            viewDomains(siteIdentifier);
+            loadDomainCounts();
+          } else {
+            alert('Failed to add domain');
+          }
+        })
+        .catch(err => {
+          console.error('Error adding domain:', err);
+          alert('Failed to add domain');
+        });
+    }
+
+    function deleteDomain(siteIdentifier, domainId) {
+      if (!confirm('Are you sure you want to delete this domain?')) return;
+
+      fetch(`/api/sites/${siteIdentifier}/domains/${domainId}`, { method: 'DELETE' })
+        .then(response => {
+          if (response.ok) {
+            viewDomains(siteIdentifier);
+            loadDomainCounts();
+          } else {
+            alert('Failed to delete domain');
+          }
+        })
+        .catch(err => {
+          console.error('Error deleting domain:', err);
+          alert('Failed to delete domain');
+        });
+    }
+
+    async function loadDomainCounts() {
+      const sites = JSON.parse('<%- JSON.stringify(sites.map(s => s.siteIdentifier)).replace(/</g, "\\u003c") %>');
+      for (const siteId of sites) {
+        try {
+          const response = await fetch(`/api/sites/${siteId}/domains`);
+          const data = await response.json();
+          const domains = Array.isArray(data?.domains) ? data.domains : [];
+          const countElem = document.getElementById(`domainCount-${siteId}`);
+          if (countElem) {
+            countElem.textContent = domains.length;
+          }
+        } catch (err) {
+          console.error(`Error loading domain count for ${siteId}:`, err);
+        }
+      }
+    }
+
+    // Load stats on page load
+    loadSiteStats();
+    loadDomainCounts();
+  </script>
+</body>
+</html>

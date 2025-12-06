@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>Subscriber Management - Beacon</title>
+  <%- include('partials/_head') %>
+</head>
+<body>
+  <div class="app-wrapper">
+    <%- include('partials/_sidebar', { user: user, currentPath: '/subscribers-dashboard' }) %>
+    
+    <main class="main-content">
+      <%- include('partials/_topbar', { user: user, pageTitle: 'Subscribers' }) %>
+      
+      <div class="page-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-top">
+            <div>
+              <h1 class="page-title">Subscriber Management</h1>
+              <p class="page-description">Manage your notification subscribers and segments</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary" onclick="exportSubscribers()">
+                <i data-lucide="download"></i>
+                Export CSV
+              </button>
+              <button class="btn btn-primary" onclick="refreshData()">
+                <i data-lucide="refresh-cw"></i>
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-4 mb-lg">
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-title">Total Subscribers</span>
+              <div class="stat-card-icon">
+                <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+              </div>
+            </div>
+            <div class="stat-card-value" id="totalSubscribers">0</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-title">Active</span>
+              <div class="stat-card-icon" style="background-color: var(--color-success-light); color: var(--color-success);">
+                <i data-lucide="check-circle" style="width: 20px; height: 20px;"></i>
+              </div>
+            </div>
+            <div class="stat-card-value" id="activeSubscribers">0</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-title">Unsubscribed</span>
+              <div class="stat-card-icon" style="background-color: var(--color-warning-light); color: var(--color-warning);">
+                <i data-lucide="user-minus" style="width: 20px; height: 20px;"></i>
+              </div>
+            </div>
+            <div class="stat-card-value" id="unsubscribedCount">0</div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-title">This Week</span>
+              <div class="stat-card-icon" style="background-color: var(--color-info-light); color: var(--color-info);">
+                <i data-lucide="trending-up" style="width: 20px; height: 20px;"></i>
+              </div>
+            </div>
+            <div class="stat-card-value" id="newThisWeek">0</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="card mb-lg">
+          <div class="card-body">
+            <div class="grid grid-cols-3 gap-md">
+              <div class="form-group">
+                <label for="statusFilter" class="form-label">Status</label>
+                <select id="statusFilter" class="form-select" onchange="loadSubscribers()">
+                  <option value="">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="unsubscribed">Unsubscribed</option>
+                  <option value="bounced">Bounced</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="searchQuery" class="form-label">Search</label>
+                <input type="text" id="searchQuery" class="form-input" placeholder="Search endpoint or user agent" onkeyup="handleSearch(event)">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">&nbsp;</label>
+                <button class="btn btn-secondary w-full" onclick="clearFilters()">
+                  <i data-lucide="x"></i>
+                  Clear Filters
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subscribers Table -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i data-lucide="users" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+              Subscribers
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="table-container">
+              <table class="table" id="subscribersTable">
+                <thead>
+                  <tr>
+                    <th>Endpoint</th>
+                    <th>Status</th>
+                    <th>Subscribed</th>
+                    <th>Tags</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td colspan="5" class="text-center">Loading subscribers...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    const siteIdentifier = '<%= user && user.site_identifier ? user.site_identifier : "localhost" %>';
+
+    async function loadSubscribers() {
+      const status = document.getElementById('statusFilter').value;
+      const q = document.getElementById('searchQuery').value;
+
+      const params = new URLSearchParams({
+        site_identifier: siteIdentifier
+      });
+      if (status) params.append('status', status);
+      if (q) params.append('q', q);
+
+      try {
+        const response = await fetch(`/api/subscribers?${params}`);
+        const data = await response.json();
+
+        if (data.subscribers) {
+          renderSubscribers(data.subscribers);
+          updateStats(data.subscribers);
+        }
+      } catch (error) {
+        console.error('Error loading subscribers:', error);
+      }
+    }
+
+    function renderSubscribers(subscribers) {
+      const tbody = document.querySelector('#subscribersTable tbody');
+      
+      if (subscribers.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-secondary">No subscribers found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = subscribers.map(sub => `
+        <tr>
+          <td>
+            <div class="text-sm font-medium">${truncateEndpoint(sub.endpoint)}</div>
+            <div class="text-xs text-secondary">${sub.userAgent || 'Unknown device'}</div>
+          </td>
+          <td>
+            <span class="badge badge-${getStatusBadge(sub.status)}">${sub.status || 'active'}</span>
+          </td>
+          <td class="text-sm">${new Date(sub.subscriptionTime).toLocaleDateString()}</td>
+          <td class="text-sm">${sub.tags || '-'}</td>
+          <td>
+            <div class="flex gap-sm">
+              <button class="btn btn-sm btn-secondary" onclick="updateStatus(${sub.id}, 'unsubscribed')" title="Unsubscribe">
+                <i data-lucide="user-minus" style="width: 14px; height: 14px;"></i>
+              </button>
+              <button class="btn btn-sm btn-error" onclick="deleteSubscriber(${sub.id})" title="Delete">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      // Re-initialize icons
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+
+    function updateStats(subscribers) {
+      document.getElementById('totalSubscribers').textContent = subscribers.length;
+      document.getElementById('activeSubscribers').textContent = subscribers.filter(s => s.status === 'active').length;
+      document.getElementById('unsubscribedCount').textContent = subscribers.filter(s => s.status === 'unsubscribed').length;
+      
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      document.getElementById('newThisWeek').textContent = subscribers.filter(s => new Date(s.subscriptionTime) > oneWeekAgo).length;
+    }
+
+    function truncateEndpoint(endpoint) {
+      if (endpoint.length > 50) {
+        return endpoint.substring(0, 50) + '...';
+      }
+      return endpoint;
+    }
+
+    function getStatusBadge(status) {
+      switch(status) {
+        case 'active': return 'success';
+        case 'unsubscribed': return 'warning';
+        case 'bounced': return 'error';
+        default: return 'info';
+      }
+    }
+
+    async function updateStatus(id, status) {
+      if (!confirm(`Set subscriber status to ${status}?`)) return;
+
+      try {
+        const response = await fetch(`/api/subscribers/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+
+        if (response.ok) {
+          loadSubscribers();
+        } else {
+          alert('Failed to update status');
+        }
+      } catch (error) {
+        console.error('Error updating status:', error);
+      }
+    }
+
+    async function deleteSubscriber(id) {
+      if (!confirm('Permanently delete this subscriber?')) return;
+
+      try {
+        const response = await fetch(`/api/subscribers/${id}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          loadSubscribers();
+        } else {
+          alert('Failed to delete subscriber');
+        }
+      } catch (error) {
+        console.error('Error deleting subscriber:', error);
+      }
+    }
+
+    function handleSearch(event) {
+      if (event.key === 'Enter') {
+        loadSubscribers();
+      }
+    }
+
+    function clearFilters() {
+      document.getElementById('statusFilter').value = '';
+      document.getElementById('searchQuery').value = '';
+      loadSubscribers();
+    }
+
+    function refreshData() {
+      loadSubscribers();
+    }
+
+    async function exportSubscribers() {
+      window.location.href = `/api/subscribers/export?site_identifier=${siteIdentifier}`;
+    }
+
+    // Load subscribers on page load
+    loadSubscribers();
+  </script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/_head') %>
+    <title>A/B Testing</title>
+    <style>
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        label { display: block; margin-bottom: 6px; font-weight: 500; }
+        input[type="text"], textarea { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 4px; }
+        textarea { min-height: 90px; }
+        .actions { display: flex; gap: 10px; justify-content: flex-end; }
+        .btn { padding: 10px 16px; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-primary { background: #2563eb; color: white; }
+        .btn-secondary { background: #6b7280; color: white; }
+        .list { width: 100%; border-collapse: collapse; }
+        .list th, .list td { padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    </style>
+</head>
+<body>
+    <%- include('side-menu') %>
+    <div class="container">
+        <h1>🧪 A/B Testing</h1>
+
+        <div class="card">
+            <h2>Create New Test</h2>
+            <div class="grid">
+                <div>
+                    <label>Test Name</label>
+                    <input type="text" id="testName" placeholder="e.g., Title Variation">
+                </div>
+                <div>
+                    <label>Traffic Split</label>
+                    <input type="text" id="trafficSplit" value="0.50">
+                </div>
+            </div>
+
+            <h3>Variant A</h3>
+            <div class="grid">
+                <div>
+                    <label>Title</label>
+                    <input type="text" id="aTitle" placeholder="Title A">
+                </div>
+                <div>
+                    <label>URL</label>
+                    <input type="text" id="aUrl" placeholder="https://...">
+                </div>
+            </div>
+            <label>Body</label>
+            <textarea id="aBody" placeholder="Body A"></textarea>
+
+            <h3>Variant B</h3>
+            <div class="grid">
+                <div>
+                    <label>Title</label>
+                    <input type="text" id="bTitle" placeholder="Title B">
+                </div>
+                <div>
+                    <label>URL</label>
+                    <input type="text" id="bUrl" placeholder="https://...">
+                </div>
+            </div>
+            <label>Body</label>
+            <textarea id="bBody" placeholder="Body B"></textarea>
+
+            <div class="actions">
+                <button class="btn btn-secondary" onclick="resetForm()">Reset</button>
+                <button class="btn btn-primary" onclick="createTest()">Create Test</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Existing Tests</h2>
+            <table class="list" id="testsTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Split</th>
+                        <th>Variant A Sends</th>
+                        <th>Variant B Sends</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="6">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card" id="resultsCard" style="display:none;">
+            <h2>Results</h2>
+            <div id="resultsContent">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        const siteIdentifier = '<%= site_identifier %>';
+
+        async function createTest() {
+            try {
+                const payload = {
+                    name: document.getElementById('testName').value,
+                    site_identifier: siteIdentifier,
+                    variant_a_title: document.getElementById('aTitle').value,
+                    variant_a_body: document.getElementById('aBody').value,
+                    variant_a_url: document.getElementById('aUrl').value,
+                    variant_b_title: document.getElementById('bTitle').value,
+                    variant_b_body: document.getElementById('bBody').value,
+                    variant_b_url: document.getElementById('bUrl').value,
+                    traffic_split: parseFloat(document.getElementById('trafficSplit').value || '0.5')
+                };
+
+                const res = await fetch('/api/ab-tests', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Test created');
+                    loadTests();
+                    resetForm();
+                } else {
+                    alert('Failed: ' + (data.error || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Error creating test');
+            }
+        }
+
+        function resetForm() {
+            ['testName','trafficSplit','aTitle','aBody','aUrl','bTitle','bBody','bUrl'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+        }
+
+        async function loadTests() {
+            try {
+                const res = await fetch(`/api/ab-tests?site_identifier=${siteIdentifier}`);
+                const data = await res.json();
+                const tbody = document.querySelector('#testsTable tbody');
+                if (data.success) {
+                    tbody.innerHTML = data.tests.map(t => `
+                        <tr>
+                            <td>${t.name}</td>
+                            <td>${t.status}</td>
+                            <td>${(t.traffic_split * 100).toFixed(0)}%</td>
+                            <td>${t.variant_a_sends}</td>
+                            <td>${t.variant_b_sends}</td>
+                            <td>
+                                <button class="btn btn-primary" onclick="startTest(${t.id})">Start</button>
+                                <button class="btn" onclick="viewResults(${t.id})">Results</button>
+                                <button class="btn" onclick="stopTest(${t.id})">Stop</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6">Failed to load</td></tr>';
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function startTest(id) {
+            try {
+                const res = await fetch(`/api/ab-tests/${id}/start`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Test started');
+                    loadTests();
+                } else {
+                    alert('Failed to start');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function stopTest(id) {
+            try {
+                const res = await fetch(`/api/ab-tests/${id}/stop`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Test stopped');
+                    loadTests();
+                } else {
+                    alert('Failed to stop');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function viewResults(id) {
+            try {
+                const res = await fetch(`/api/ab-tests/${id}/results`);
+                const data = await res.json();
+                if (data.success) {
+                    const r = data.results;
+                    document.getElementById('resultsCard').style.display = 'block';
+                    document.getElementById('resultsContent').innerHTML = `
+                        <h3>${data.test.name}</h3>
+                        <p>Status: ${data.test.status}</p>
+                        <div class="grid">
+                            <div class="card">
+                                <h4>Variant A</h4>
+                                <p>Sends: ${r.variant_a.sends || 0}</p>
+                                <p>Delivery Rate: ${r.variant_a.delivery_rate || 0}%</p>
+                                <p>Open Rate: ${r.variant_a.open_rate || 0}%</p>
+                                <p>Click Rate: ${r.variant_a.click_rate || 0}%</p>
+                            </div>
+                            <div class="card">
+                                <h4>Variant B</h4>
+                                <p>Sends: ${r.variant_b.sends || 0}</p>
+                                <p>Delivery Rate: ${r.variant_b.delivery_rate || 0}%</p>
+                                <p>Open Rate: ${r.variant_b.open_rate || 0}%</p>
+                                <p>Click Rate: ${r.variant_b.click_rate || 0}%</p>
+                            </div>
+                        </div>
+                        <p>Winner: ${r.winner || 'N/A'} (Confidence: ${r.confidence || 0}%)</p>
+                    `;
+                } else {
+                    alert('Failed to load results');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        loadTests();
+    </script>
+</body>
+</html>

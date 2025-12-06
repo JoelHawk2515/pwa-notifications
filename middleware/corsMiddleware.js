@@ -1,31 +1,54 @@
 const mysql = require('mysql2/promise');
-const { dbConfig } = require('../config/config'); // Import database configuration
+const { dbConfig } = require('../config/config');
 
-// Function to connect to the database
-async function connectToDatabase() {
-  const connection = await mysql.createConnection(dbConfig);
-  return connection;
+// Cache allowed origins to avoid repeated DB queries
+let allowedOriginsCache = [];
+let lastCacheUpdate = 0;
+const CACHE_TTL = 60000; // 1 minute
+
+async function updateAllowedOrigins() {
+  const now = Date.now();
+  if (now - lastCacheUpdate < CACHE_TTL) return;
+  
+  try {
+    const connection = await mysql.createConnection(dbConfig);
+    const [domains] = await connection.query('SELECT DISTINCT domain FROM site_domains');
+    await connection.end();
+    allowedOriginsCache = domains.map(row => {
+      const d = row.domain.toLowerCase();
+      // Support both http and https
+      return [`https://${d}`, `http://${d}`];
+    }).flat();
+    lastCacheUpdate = now;
+  } catch (err) {
+    console.error('Error updating CORS allowed origins:', err);
+  }
 }
 
 // Middleware for dynamic CORS handling
 const dynamicCors = async (req, res, next) => {
   try {
-      const siteCode = req.body.site_identifier || ''; // Use site_identifier from the body
+      const origin = req.headers.origin;
 
-      // Connect to the database
-      const connection = await connectToDatabase(); 
+      // Allow requests with no origin (like mobile apps, curl, postman)
+      if (!origin) {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      } else {
+        // Update cache if stale
+        await updateAllowedOrigins();
 
-      // Query the database for the domain associated with the siteCode
-      const [results] = await connection.query('SELECT domain FROM sites WHERE siteCode = ?', [siteCode]);
+        const originLower = origin.toLowerCase();
+        const isAllowed = allowedOriginsCache.some(allowed => originLower.startsWith(allowed)) 
+          || originLower.includes('localhost') 
+          || originLower.includes('127.0.0.1');
 
-      if (results.length === 0) {
-          return res.status(404).send('Site code not found');
+        if (isAllowed) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+        } else {
+          return res.status(403).send('Not allowed by CORS');
+        }
       }
 
-      const domain = results[0].domain;
-
-      // Set CORS headers dynamically based on the site's domain
-      res.setHeader('Access-Control-Allow-Origin', `${domain}`);  // Ensure full origin is used
       res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -39,7 +62,7 @@ const dynamicCors = async (req, res, next) => {
       // Continue to the next middleware or route handler
       next();
   } catch (err) {
-      console.error('Error querying the database:', err);
+      console.error('Error in CORS middleware:', err);
       res.status(500).send('Internal Server Error');
   }
 };

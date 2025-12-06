@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/_head') %>
+    <title>Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .analytics-container {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .metric-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .metric-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #2563eb;
+            margin: 10px 0;
+        }
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .metric-change {
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+        .metric-change.positive {
+            color: #10b981;
+        }
+        .metric-change.negative {
+            color: #ef4444;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+            margin-top: 15px;
+        }
+        .chart-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1f2937;
+        }
+        .filters {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            align-items: end;
+        }
+        .filter-group {
+            flex: 1;
+        }
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #374151;
+        }
+        .filter-group input, .filter-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 0.95em;
+        }
+        .btn-filter {
+            padding: 8px 20px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .btn-filter:hover {
+            background: #1d4ed8;
+        }
+        .btn-export {
+            padding: 8px 20px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .btn-export:hover {
+            background: #059669;
+        }
+        .table-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background: #f3f4f6;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        tr:hover {
+            background: #f9fafb;
+        }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        .badge.high {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .badge.medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .badge.low {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #2563eb;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #6b7280;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            color: #2563eb;
+        }
+        .tab.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <%- include('side-menu') %>
+    
+    <div class="analytics-container">
+        <h1>📊 Analytics Dashboard</h1>
+        
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label>Start Date</label>
+                <input type="date" id="startDate">
+            </div>
+            <div class="filter-group">
+                <label>End Date</label>
+                <input type="date" id="endDate">
+            </div>
+            <button class="btn-filter" onclick="loadAnalytics()">Apply Filters</button>
+            <button class="btn-export" onclick="exportData()">Export CSV</button>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="metrics-grid" id="metricsGrid">
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading metrics...
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('overview')">Overview</button>
+            <button class="tab" onclick="switchTab('funnel')">Funnel Analysis</button>
+            <button class="tab" onclick="switchTab('cohorts')">Cohorts</button>
+            <button class="tab" onclick="switchTab('performance')">Top Performing</button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div class="tab-content active" id="overview">
+            <div class="chart-container">
+                <div class="chart-title">Notification Trends (Last 30 Days)</div>
+                <div class="chart-wrapper">
+                    <canvas id="trendsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-title">Engagement Breakdown</div>
+                <div class="chart-wrapper">
+                    <canvas id="engagementChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Funnel Tab -->
+        <div class="tab-content" id="funnel">
+            <div class="chart-container">
+                <div class="chart-title">Conversion Funnel</div>
+                <div class="chart-wrapper">
+                    <canvas id="funnelChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cohorts Tab -->
+        <div class="tab-content" id="cohorts">
+            <div class="chart-container">
+                <div class="chart-title">Cohort Engagement Rates</div>
+                <div class="chart-wrapper">
+                    <canvas id="cohortChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Tab -->
+        <div class="tab-content" id="performance">
+            <div class="table-container">
+                <div class="chart-title">Top Performing Notifications</div>
+                <table id="performanceTable">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Opens</th>
+                            <th>Clicks</th>
+                            <th>CTR</th>
+                            <th>Sent At</th>
+                            <th>Performance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td colspan="6" class="loading">Loading data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let charts = {};
+        const siteIdentifier = '<%= site_identifier %>';
+
+        // Set default dates (last 30 days)
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+        
+        document.getElementById('startDate').valueAsDate = startDate;
+        document.getElementById('endDate').valueAsDate = endDate;
+
+        // Switch tabs
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+
+            // Load data for specific tabs
+            if (tabName === 'funnel') loadFunnelAnalysis();
+            if (tabName === 'cohorts') loadCohortAnalysis();
+        }
+
+        // Load main analytics
+        async function loadAnalytics() {
+            try {
+                const start = document.getElementById('startDate').value;
+                const end = document.getElementById('endDate').value;
+                
+                const params = new URLSearchParams({
+                    site_identifier: siteIdentifier,
+                    start_date: start,
+                    end_date: end
+                });
+
+                const response = await fetch(`/api/analytics?${params}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    renderMetrics(result.data.overall, result.data.subscribers);
+                    renderTrendsChart(result.data.timeSeries);
+                    renderEngagementChart(result.data.overall);
+                    renderPerformanceTable(result.data.topNotifications);
+                }
+            } catch (error) {
+                console.error('Error loading analytics:', error);
+            }
+        }
+
+        // Render key metrics
+        function renderMetrics(overall, subscribers) {
+            const metricsGrid = document.getElementById('metricsGrid');
+            metricsGrid.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-label">Total Sent</div>
+                    <div class="metric-value">${overall.total_sent || 0}</div>
+                    <div class="metric-change positive">↑ ${overall.successful || 0} successful</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Success Rate</div>
+                    <div class="metric-value">${overall.success_rate || 0}%</div>
+                    <div class="metric-change ${overall.success_rate >= 95 ? 'positive' : 'negative'}">
+                        ${overall.failed || 0} failed
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Open Rate</div>
+                    <div class="metric-value">${overall.open_rate || 0}%</div>
+                    <div class="metric-change positive">${overall.total_opens || 0} opens</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Click Rate</div>
+                    <div class="metric-value">${overall.click_rate || 0}%</div>
+                    <div class="metric-change positive">${overall.total_clicks || 0} clicks</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Conversion Rate</div>
+                    <div class="metric-value">${overall.conversion_rate || 0}%</div>
+                    <div class="metric-change positive">${overall.total_conversions || 0} conversions</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Active Subscribers</div>
+                    <div class="metric-value">${subscribers.active_subscribers || 0}</div>
+                    <div class="metric-change">of ${subscribers.total_subscribers || 0} total</div>
+                </div>
+            `;
+        }
+
+        // Render trends chart
+        function renderTrendsChart(timeSeries) {
+            const ctx = document.getElementById('trendsChart');
+            
+            if (charts.trends) {
+                charts.trends.destroy();
+            }
+
+            charts.trends = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: timeSeries.map(d => new Date(d.date).toLocaleDateString()),
+                    datasets: [
+                        {
+                            label: 'Sent',
+                            data: timeSeries.map(d => d.sent_count),
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Opens',
+                            data: timeSeries.map(d => d.opens),
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Clicks',
+                            data: timeSeries.map(d => d.clicks),
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render engagement chart
+        function renderEngagementChart(overall) {
+            const ctx = document.getElementById('engagementChart');
+            
+            if (charts.engagement) {
+                charts.engagement.destroy();
+            }
+
+            charts.engagement = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Opens', 'Clicks', 'Conversions'],
+                    datasets: [{
+                        data: [overall.total_opens || 0, overall.total_clicks || 0, overall.total_conversions || 0],
+                        backgroundColor: ['#10b981', '#f59e0b', '#8b5cf6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load funnel analysis
+        async function loadFunnelAnalysis() {
+            try {
+                const params = new URLSearchParams({ site_identifier: siteIdentifier });
+                const response = await fetch(`/api/analytics/funnel?${params}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    renderFunnelChart(result.funnel);
+                }
+            } catch (error) {
+                console.error('Error loading funnel:', error);
+            }
+        }
+
+        // Render funnel chart
+        function renderFunnelChart(funnel) {
+            const ctx = document.getElementById('funnelChart');
+            
+            if (charts.funnel) {
+                charts.funnel.destroy();
+            }
+
+            charts.funnel = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: funnel.map(f => `${f.stage} (${f.rate}%)`),
+                    datasets: [{
+                        label: 'Users',
+                        data: funnel.map(f => f.count),
+                        backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load cohort analysis
+        async function loadCohortAnalysis() {
+            try {
+                const params = new URLSearchParams({ site_identifier: siteIdentifier });
+                const response = await fetch(`/api/analytics/cohorts?${params}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    renderCohortChart(result.cohorts);
+                }
+            } catch (error) {
+                console.error('Error loading cohorts:', error);
+            }
+        }
+
+        // Render cohort chart
+        function renderCohortChart(cohorts) {
+            const ctx = document.getElementById('cohortChart');
+            
+            if (charts.cohort) {
+                charts.cohort.destroy();
+            }
+
+            charts.cohort = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: cohorts.map(c => c.cohort),
+                    datasets: [{
+                        label: 'Engagement Rate (%)',
+                        data: cohorts.map(c => c.engagement_rate),
+                        backgroundColor: '#2563eb'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render performance table
+        function renderPerformanceTable(notifications) {
+            const tbody = document.querySelector('#performanceTable tbody');
+            
+            if (!notifications || notifications.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">No data available</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = notifications.map(notif => {
+                const ctr = notif.opens > 0 ? ((notif.clicks / notif.opens) * 100).toFixed(2) : 0;
+                const performanceBadge = ctr > 10 ? 'high' : ctr > 5 ? 'medium' : 'low';
+                
+                return `
+                    <tr>
+                        <td>${notif.title || 'Untitled'}</td>
+                        <td>${notif.opens || 0}</td>
+                        <td>${notif.clicks || 0}</td>
+                        <td>${ctr}%</td>
+                        <td>${new Date(notif.sent_at).toLocaleString()}</td>
+                        <td><span class="badge ${performanceBadge}">${performanceBadge.toUpperCase()}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Export data
+        async function exportData() {
+            try {
+                const start = document.getElementById('startDate').value;
+                const end = document.getElementById('endDate').value;
+                
+                const params = new URLSearchParams({
+                    site_identifier: siteIdentifier,
+                    start_date: start,
+                    end_date: end
+                });
+
+                window.location.href = `/api/analytics/export?${params}`;
+            } catch (error) {
+                console.error('Error exporting data:', error);
+                alert('Failed to export data');
+            }
+        }
+
+        // Load analytics on page load
+        loadAnalytics();
+
+        // Refresh real-time metrics every 30 seconds
+        setInterval(async () => {
+            try {
+                const params = new URLSearchParams({ site_identifier: siteIdentifier });
+                const response = await fetch(`/api/analytics/realtime?${params}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update real-time indicators (could add a small widget for this)
+                    console.log('Real-time update:', result.data);
+                }
+            } catch (error) {
+                console.error('Error fetching real-time data:', error);
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

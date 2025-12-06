@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>Notification Settings - Beacon</title>
+  <%- include('partials/_head') %>
+</head>
+<body>
+  <div class="app-wrapper">
+    <%- include('partials/_sidebar', { user: user, currentPath: '/notification-settings' }) %>
+    
+    <main class="main-content">
+      <%- include('partials/_topbar', { user: user, pageTitle: 'Notification Settings' }) %>
+      
+      <div class="page-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-top">
+            <div>
+              <h1 class="page-title">Notification Prompt Settings</h1>
+              <p class="page-description">Configure how and when users are prompted to enable notifications</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Current Status Card -->
+        <div class="card mb-lg">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i data-lucide="info" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+              Your Notification Status
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="grid grid-cols-3 gap-lg">
+              <div class="stat-card">
+                <div class="stat-card-content">
+                  <div class="stat-card-label">Browser Support</div>
+                  <div class="stat-card-value" id="browserSupport">Checking...</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-content">
+                  <div class="stat-card-label">Permission Status</div>
+                  <div class="stat-card-value" id="permissionStatus">Checking...</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-card-content">
+                  <div class="stat-card-label">Prompt Shown</div>
+                  <div class="stat-card-value" id="promptShown">No</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-md mt-lg">
+              <button class="btn btn-primary" onclick="testPrompt()">
+                <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+                Preview Prompt
+              </button>
+              <button class="btn btn-secondary" onclick="requestPermission()">
+                <i data-lucide="bell" style="width: 16px; height: 16px;"></i>
+                Request Permission Now
+              </button>
+              <button class="btn btn-secondary" onclick="clearLocalStorage()">
+                <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+                Reset Prompt State
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Integration Instructions -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i data-lucide="code" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+              Integration Instructions
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="mb-md">
+              <h4 style="margin-bottom: var(--space-sm); font-weight: 600;">How It Works</h4>
+              <p style="color: var(--color-text-secondary); margin-bottom: var(--space-md);">
+                The notification prompt automatically checks if the user has enabled notifications and displays a friendly banner if they haven't. 
+                It respects user preferences and includes a cooldown period if dismissed.
+              </p>
+            </div>
+
+            <div class="mb-md">
+              <h4 style="margin-bottom: var(--space-sm); font-weight: 600;">Features</h4>
+              <ul style="color: var(--color-text-secondary); padding-left: 20px;">
+                <li>✅ Automatic permission detection</li>
+                <li>✅ Smart timing (shows after 3 seconds on page)</li>
+                <li>✅ Respects user dismissals (7-day cooldown)</li>
+                <li>✅ Mobile-responsive design</li>
+                <li>✅ Smooth animations</li>
+                <li>✅ Success/error feedback messages</li>
+              </ul>
+            </div>
+
+            <div class="mb-md">
+              <h4 style="margin-bottom: var(--space-sm); font-weight: 600;">Manual Integration (Optional)</h4>
+              <p style="color: var(--color-text-secondary); margin-bottom: var(--space-sm);">
+                The prompt is already included in all pages. To manually control it via JavaScript:
+              </p>
+              <pre style="background: var(--color-bg-tertiary); padding: var(--space-md); border-radius: var(--radius-md); overflow-x: auto;"><code>// Show prompt manually
+window.NotificationPrompt.show();
+
+// Hide prompt
+window.NotificationPrompt.hide();
+
+// Check permission status
+const status = window.NotificationPrompt.checkPermission();
+console.log('Permission:', status); // 'default', 'granted', 'denied', or 'unsupported'
+
+// Check browser support
+if (window.NotificationPrompt.isSupported()) {
+  console.log('Notifications are supported');
+}
+
+// Listen for permission granted event
+window.addEventListener('notificationPermissionGranted', (event) => {
+  console.log('User granted permission!', event.detail);
+  // Subscribe user to push notifications here
+});</code></pre>
+            </div>
+
+            <div>
+              <h4 style="margin-bottom: var(--space-sm); font-weight: 600;">Configuration</h4>
+              <p style="color: var(--color-text-secondary); margin-bottom: var(--space-sm);">
+                To customize the prompt behavior, edit <code style="background: var(--color-bg-tertiary); padding: 2px 6px; border-radius: 4px;">/public/js/notification-prompt.js</code>:
+              </p>
+              <pre style="background: var(--color-bg-tertiary); padding: var(--space-md); border-radius: var(--radius-md); overflow-x: auto;"><code>const CONFIG = {
+  delayBeforePrompt: 3000,    // Wait 3 seconds before showing
+  promptCooldownDays: 7,      // Wait 7 days if user dismisses
+  // LocalStorage keys for tracking
+  storageKeys: { ... }
+};</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    // Check notification support and status
+    function updateStatus() {
+      // Browser support
+      const supported = 'Notification' in window && 'serviceWorker' in navigator;
+      const supportElem = document.getElementById('browserSupport');
+      supportElem.textContent = supported ? '✅ Supported' : '❌ Not Supported';
+      supportElem.style.color = supported ? 'var(--color-success)' : 'var(--color-danger)';
+
+      // Permission status
+      if (supported) {
+        const permission = Notification.permission;
+        const statusElem = document.getElementById('permissionStatus');
+        
+        let statusText = '';
+        let statusColor = '';
+        
+        switch(permission) {
+          case 'granted':
+            statusText = '✅ Granted';
+            statusColor = 'var(--color-success)';
+            break;
+          case 'denied':
+            statusText = '❌ Denied';
+            statusColor = 'var(--color-danger)';
+            break;
+          case 'default':
+            statusText = '⏳ Not Asked';
+            statusColor = 'var(--color-warning)';
+            break;
+        }
+        
+        statusElem.textContent = statusText;
+        statusElem.style.color = statusColor;
+      }
+
+      // Check if prompt was shown
+      const lastPrompted = localStorage.getItem('notification_last_prompted');
+      const promptElem = document.getElementById('promptShown');
+      if (lastPrompted) {
+        const date = new Date(parseInt(lastPrompted));
+        promptElem.textContent = date.toLocaleDateString();
+      }
+    }
+
+    function testPrompt() {
+      if (window.NotificationPrompt) {
+        window.NotificationPrompt.show();
+      } else {
+        alert('Notification prompt script not loaded');
+      }
+    }
+
+    async function requestPermission() {
+      if (!('Notification' in window)) {
+        alert('Notifications are not supported in your browser');
+        return;
+      }
+
+      try {
+        const permission = await Notification.requestPermission();
+        console.log('Permission result:', permission);
+        updateStatus();
+        
+        if (permission === 'granted') {
+          alert('✅ Notifications enabled! You will now receive updates.');
+        } else if (permission === 'denied') {
+          alert('❌ Notifications blocked. You can enable them in your browser settings.');
+        }
+      } catch (error) {
+        console.error('Error requesting permission:', error);
+        alert('Error requesting permission: ' + error.message);
+      }
+    }
+
+    function clearLocalStorage() {
+      if (confirm('This will reset the prompt state. The prompt will show again on next page load. Continue?')) {
+        localStorage.removeItem('notification_last_prompted');
+        localStorage.removeItem('notification_user_dismissed');
+        localStorage.removeItem('notification_permission_granted');
+        alert('✅ Prompt state reset. Refresh the page to see the prompt again.');
+        updateStatus();
+      }
+    }
+
+    // Listen for permission granted event
+    window.addEventListener('notificationPermissionGranted', (event) => {
+      console.log('Permission granted event received:', event.detail);
+      updateStatus();
+    });
+
+    // Initial status update
+    updateStatus();
+  </script>
+</body>
+</html>

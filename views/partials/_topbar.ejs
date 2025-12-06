@@ -1,0 +1,59 @@
+<!-- Modern Topbar -->
+<header class="topbar">
+  <div class="topbar-left">
+    <h1 class="topbar-title"><%= pageTitle || 'Dashboard' %></h1>
+  </div>
+
+  <div class="topbar-right">
+    <!-- Quick Actions -->
+    <div class="topbar-actions">
+      <% if (user && user.role === 'administrator') { %>
+      <a href="/send-notification/<%= user.site_identifier || 'localhost' %>" class="btn btn-primary btn-sm">
+        <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+        New Notification
+      </a>
+      <% } %>
+      
+      <!-- Theme Toggle (Optional) -->
+      <button class="btn btn-ghost btn-icon" id="themeToggle" aria-label="Toggle theme">
+        <i data-lucide="sun" id="themeIcon" style="width: 20px; height: 20px;"></i>
+      </button>
+    </div>
+  </div>
+</header>
+
+<script>
+  // Initialize Lucide icons in topbar
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+
+  // Theme toggle functionality
+  const themeToggle = document.getElementById('themeToggle');
+  const themeIcon = document.getElementById('themeIcon');
+  
+  if (themeToggle) {
+    // Load saved theme
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateThemeIcon(newTheme);
+    });
+  }
+
+  function updateThemeIcon(theme) {
+    if (themeIcon) {
+      themeIcon.setAttribute('data-lucide', theme === 'dark' ? 'moon' : 'sun');
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+  }
+</script>

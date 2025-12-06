@@ -25,6 +25,10 @@
                 <h1>Welcome to Your Dashboard</h1>
                 <p>This is your personal dashboard.</p>
                 <!-- Dashboard content goes here -->
+                <div style="margin-top:16px;">
+                    <button id="btn-test-send">Send Test Notification</button>
+                    <span id="test-send-status" style="margin-left:8px;"></span>
+                </div>
             </div>
         </section>
         <section id="g-container-footer"></section>
@@ -40,6 +44,52 @@
     </script>    
     
     <script>
+                // Inject public VAPID key for client registration if available
+                window.PUBLIC_VAPID_KEY = '<%= urlSafePublicVapidKey || "" %>';
+                // Optionally inject site identifier for subscription scoping
+                (function(){
+                    var meta = document.createElement('meta');
+                    meta.setAttribute('name','site-identifier');
+                    meta.setAttribute('content', '<%= (user && user.site_identifier) ? user.site_identifier : "" %>');
+                    document.head.appendChild(meta);
+                })();
+                // Auto register push on dashboard load
+                (function(){
+                    var s = document.createElement('script');
+                    s.src = '/register-push.js';
+                    document.body.appendChild(s);
+                })();
+
+                // Wire up test send button
+                (function(){
+                    function getSiteIdentifier(){
+                        var m = document.querySelector('meta[name="site-identifier"]');
+                        return m && m.content ? m.content : '';
+                    }
+                    var btn = document.getElementById('btn-test-send');
+                    var statusEl = document.getElementById('test-send-status');
+                    if(btn){
+                        btn.addEventListener('click', async function(){
+                            statusEl.textContent = 'Sending…';
+                            try{
+                                const siteIdentifier = getSiteIdentifier();
+                                const resp = await fetch('/notifications/test', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type':'application/json' },
+                                    body: JSON.stringify({ siteIdentifier })
+                                });
+                                const json = await resp.json();
+                                if(resp.ok && json.success){
+                                    statusEl.textContent = `Success (sent: ${json.count || 0})`;
+                                } else {
+                                    statusEl.textContent = `Failed: ${json.message || resp.statusText}`;
+                                }
+                            } catch(err){
+                                statusEl.textContent = 'Error: ' + err.message;
+                            }
+                        });
+                    }
+                })();
         // Function to load and insert the side menu
         function loadSideMenu() {
             const sideMenuPlaceholder = document.getElementById('side-menu-placeholder');

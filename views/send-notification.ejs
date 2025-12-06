@@ -7,13 +7,35 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link rel="icon" href="/assets/favicon.png" type="image/x-icon">
     <title>Send Notification for <%= siteCode %></title>
+    <style>
+        .composer-container { display: grid; grid-template-columns: 1fr 400px; gap: 24px; margin: 20px; }
+        .composer-form { background: #fff; padding: 24px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .form-group textarea { min-height: 100px; resize: vertical; }
+        .preview-pane { background: #f5f5f5; padding: 24px; border-radius: 8px; position: sticky; top: 20px; }
+        .notification-preview { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-top: 16px; }
+        .preview-icon { width: 48px; height: 48px; border-radius: 8px; margin-bottom: 12px; background: #e0e0e0; }
+        .preview-title { font-weight: 600; font-size: 16px; margin-bottom: 8px; color: #000; }
+        .preview-body { font-size: 14px; color: #555; line-height: 1.4; }
+        .preview-image { width: 100%; border-radius: 4px; margin-top: 12px; }
+        .btn-primary { background: #2196F3; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 600; }
+        .btn-primary:hover { background: #1976D2; }
+        .btn-secondary { background: #757575; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-left: 8px; }
+        .schedule-options { background: #f9f9f9; padding: 16px; border-radius: 4px; margin-top: 12px; }
+        .inline-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .status-message { padding: 12px; border-radius: 4px; margin-top: 16px; display: none; }
+        .status-success { background: #4caf50; color: white; }
+        .status-error { background: #f44336; color: white; }
+        .audience-selector { background: #fff3e0; padding: 16px; border-radius: 4px; margin-bottom: 20px; border-left: 4px solid #ff9800; }
+        .char-count { font-size: 12px; color: #999; text-align: right; margin-top: 4px; }
+    </style>
 </head>
 <body>
     <div id="g-page-surround">
         <% if (errorMessage) { %>
-            <script>
-                alert("<%= errorMessage %>");
-            </script>
+            <div class="status-message status-error" style="display: block;"><%= errorMessage %></div>
         <% } %>
         
         <section id="g-top"></section>
@@ -21,19 +43,145 @@
         <section id="g-header"></section>
         <section id="g-utility"></section>
         <section id="g-container-main">
-            <h1>Send a Notification for <%= siteCode %></h1>
-            <form id="notification-form">
-                <input type="hidden" id="notification-site-identifier" value="<%= siteCode %>">
-                <input type="text" id="notification-title" placeholder="Title"><br>
-                <textarea id="notification-body" placeholder="Body"></textarea><br>
-                <input type="text" id="notification-icon" placeholder="Icon URL"><br>
-                <input type="text" id="notification-badge" placeholder="Badge URL"><br>
-                <input type="text" id="notification-image" placeholder="Image URL"><br>
-                <input type="text" id="notification-tag" placeholder="Tag"><br>
-                <input type="checkbox" id="notification-silent"> Silent<br>
-                <input type="text" id="notification-deep-link" placeholder="Deep Link URL (optional)"><br>
-                <button type="submit">Send Notification</button>
-            </form>
+            <h1>📢 Notification Composer - <%= siteCode %></h1>
+            <div class="composer-container">
+                <div class="composer-form">
+                    <form id="notification-form">
+                        <input type="hidden" id="notification-site-identifier" value="<%= siteCode %>">
+                        
+                        <!-- Audience Targeting -->
+                        <div class="audience-selector">
+                            <h3>🎯 Target Audience</h3>
+                            <div class="form-group">
+                                <label>Send To:</label>
+                                <select id="audience-type">
+                                    <option value="all">All Subscribers</option>
+                                    <option value="active">Active Users (Last 7 days)</option>
+                                    <option value="segment">Custom Segment (Coming Soon)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Notification Content -->
+                        <div class="form-group">
+                            <label>Template</label>
+                            <div style="display:flex; gap:8px;">
+                                <select id="template-select" style="flex:1;">
+                                    <option value="">None</option>
+                                </select>
+                                <button type="button" class="btn-secondary" onclick="applyTemplate()">Apply</button>
+                            </div>
+                            <div id="template-hints" class="char-count" style="text-align:left; color:#555; display:none;"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Title <span style="color:red">*</span></label>
+                            <input type="text" id="notification-title" placeholder="Your notification headline" maxlength="50" required>
+                            <div class="char-count"><span id="title-count">0</span>/50</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Body <span style="color:red">*</span></label>
+                            <div id="editor" style="background:#fff; min-height:120px;"></div>
+                            <textarea id="notification-body" placeholder="Your notification message" maxlength="150" required style="display:none"></textarea>
+                            <div class="char-count"><span id="body-count">0</span>/150</div>
+                        </div>
+                        
+                        <div class="inline-group">
+                            <div class="form-group">
+                                <label>Icon URL</label>
+                                <input type="url" id="notification-icon" placeholder="https://example.com/icon.png">
+                            </div>
+                            <div class="form-group">
+                                <label>Badge URL</label>
+                                <input type="url" id="notification-badge" placeholder="https://example.com/badge.png">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Image URL (Large)</label>
+                            <input type="url" id="notification-image" placeholder="https://example.com/image.png">
+                        </div>
+                        
+                        <div class="inline-group">
+                            <div class="form-group">
+                                <label>Action URL</label>
+                                <input type="url" id="notification-deep-link" placeholder="https://yoursite.com/page">
+                            </div>
+                            <div class="form-group">
+                                <label>Tag (Grouping)</label>
+                                <input type="text" id="notification-tag" placeholder="promo-2025">
+                            </div>
+                        </div>
+
+                        <!-- Scheduling -->
+                        <div class="schedule-options">
+                            <h3>⏰ Schedule</h3>
+                            <div class="form-group">
+                                <label>Delivery Time:</label>
+                                <select id="delivery-type">
+                                    <option value="immediate">Send Immediately</option>
+                                    <option value="scheduled">Schedule for Later</option>
+                                </select>
+                            </div>
+                            <div id="schedule-fields" style="display: none;">
+                                <div class="inline-group">
+                                    <div class="form-group">
+                                        <label>Date:</label>
+                                        <input type="date" id="schedule-date">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Time:</label>
+                                        <input type="time" id="schedule-time">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Timezone:</label>
+                                    <select id="schedule-timezone">
+                                        <option value="America/New_York">Eastern Time (ET)</option>
+                                        <option value="America/Chicago">Central Time (CT)</option>
+                                        <option value="America/Denver">Mountain Time (MT)</option>
+                                        <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                                        <option value="UTC">UTC</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 20px;">
+                            <label>
+                                <input type="checkbox" id="notification-silent"> 
+                                Silent notification (no sound/vibration)
+                            </label>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn-primary">📤 Send Notification</button>
+                            <button type="button" class="btn-secondary" id="btn-save-draft">💾 Save Draft</button>
+                        </div>
+                    </form>
+                    <div id="status-message" class="status-message"></div>
+                </div>
+                
+                <!-- Preview Pane -->
+                <div class="preview-pane">
+                    <h3>📱 Preview</h3>
+                    <div class="notification-preview">
+                        <img id="preview-icon-img" class="preview-icon" style="display: none;">
+                        <div id="preview-title" class="preview-title">Notification Title</div>
+                        <div id="preview-body" class="preview-body">Your notification message will appear here...</div>
+                        <img id="preview-image-img" class="preview-image" style="display: none;">
+                    </div>
+                    <div style="margin-top: 16px; padding: 12px; background: #e3f2fd; border-radius: 4px; font-size: 13px;">
+                        <strong>💡 Tips:</strong>
+                        <ul style="margin: 8px 0 0 16px; padding: 0;">
+                            <li>Keep titles under 40 characters</li>
+                            <li>Test on different devices</li>
+                            <li>Use compelling CTAs</li>
+                            <li>Schedule for optimal times</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </section>
         <section id="g-container-footer"></section>
         <section id="g-topnav"></section>
@@ -42,7 +190,35 @@
         </section>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
     <script>
+        // Initialize Quill editor
+        const quill = new Quill('#editor', {
+            theme: 'snow',
+            modules: { toolbar: [
+                [{ header: [1, 2, false] }],
+                ['bold', 'italic', 'underline'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                ['link']
+            ]}
+        });
+        // Link validation: allow only http/https
+        const Link = Quill.import('formats/link');
+        const builtValidate = Link.sanitize;
+        Link.sanitize = function(url) {
+            const v = builtValidate.call(this, url);
+            if (!v) return v;
+            if (/^https?:\/\//i.test(v)) return v;
+            return 'https://' + v.replace(/^[^a-zA-Z0-9]+/, '');
+        };
+        Quill.register(Link, true);
+        quill.on('text-change', function() {
+            const text = quill.getText().trim();
+            document.getElementById('preview-body').textContent = text || 'Your notification message will appear here...';
+            document.getElementById('notification-body').value = text;
+            document.getElementById('body-count').textContent = text.length;
+        });
         // Function to generate a unique notification ID
         function generateNotificationId() {
             return 'notif-' + new Date().getTime() + '-' + Math.floor(Math.random() * 1000);
@@ -50,17 +226,123 @@
 
         // Assuming you have access to user's role in your EJS template
         var isAdmin = <%= user.role === 'administrator' %>; // This will evaluate to true or false
-    </script>
+        
+        // Real-time preview updates
+        document.getElementById('notification-title').addEventListener('input', function(e) {
+            document.getElementById('preview-title').textContent = e.target.value || 'Notification Title';
+            document.getElementById('title-count').textContent = e.target.value.length;
+        });
+        
+        // Body input handled by Quill above
+        
+        document.getElementById('notification-icon').addEventListener('input', function(e) {
+            const img = document.getElementById('preview-icon-img');
+            if (e.target.value) {
+                img.src = e.target.value;
+                img.style.display = 'block';
+            } else {
+                img.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('notification-image').addEventListener('input', function(e) {
+            const img = document.getElementById('preview-image-img');
+            if (e.target.value) {
+                img.src = e.target.value;
+                img.style.display = 'block';
+            } else {
+                img.style.display = 'none';
+            }
+        });
 
-    <script>
-        document.getElementById('notification-form').addEventListener('submit', function(e) {
+        // Load templates for hints
+        async function loadTemplates(){
+            try {
+                const res = await fetch('/api/templates');
+                const data = await res.json();
+                if (data.success){
+                    const sel = document.getElementById('template-select');
+                    data.templates.forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.textContent = t.name;
+                        opt.dataset.title = t.title;
+                        opt.dataset.body = t.body;
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch(err){ console.error('loadTemplates', err); }
+        }
+
+        function extractVariables(text){
+            const vars = Array.from(text.matchAll(/\{\{\s*(\w+)\s*\}\}/g)).map(m => m[1]);
+            return Array.from(new Set(vars));
+        }
+
+        function applyTemplate(){
+            const sel = document.getElementById('template-select');
+            const id = sel.value;
+            if (!id) { document.getElementById('template-hints').style.display='none'; return; }
+            const title = sel.options[sel.selectedIndex].dataset.title || '';
+            const bodyT = sel.options[sel.selectedIndex].dataset.body || '';
+            document.getElementById('notification-title').value = title.replace(/\{\{\w+\}\}/g,'');
+            quill.setText(bodyT.replace(/\{\{\w+\}\}/g,''));
+            document.getElementById('notification-title').dispatchEvent(new Event('input'));
+            const vars = extractVariables(title + ' ' + bodyT);
+            const hint = document.getElementById('template-hints');
+            if (vars.length){
+                hint.style.display='block';
+                hint.textContent = 'Template variables: ' + vars.join(', ') + ' — include values in your text.';
+            } else {
+                hint.style.display='none';
+            }
+        }
+
+        // Schedule toggle
+        document.getElementById('delivery-type').addEventListener('change', function(e) {
+            document.getElementById('schedule-fields').style.display = 
+                e.target.value === 'scheduled' ? 'block' : 'none';
+        });
+
+        // Form submission
+        document.getElementById('notification-form').addEventListener('submit', async function(e) {
             e.preventDefault();
+                        // Enforce template variable presence: if a template is selected, ensure values present
+                        const sel = document.getElementById('template-select');
+                        if (sel && sel.value) {
+                            const titleTpl = sel.options[sel.selectedIndex].dataset.title || '';
+                            const bodyTpl = sel.options[sel.selectedIndex].dataset.body || '';
+                            const requiredVars = Array.from((titleTpl + ' ' + bodyTpl).matchAll(/\{\{\s*(\w+)\s*\}\}/g)).map(m => m[1]);
+                            const textToCheck = (document.getElementById('notification-title').value + ' ' + (quill.getText() || '')).toLowerCase();
+                            const missing = requiredVars.filter(v => !new RegExp(v.toLowerCase()).test(textToCheck));
+                            if (missing.length) {
+                                statusEl.style.display = 'block';
+                                statusEl.className = 'status-message status-error';
+                                statusEl.textContent = '❌ Missing template variables: ' + missing.join(', ');
+                                return;
+                            }
+                        }
+            
+            const statusEl = document.getElementById('status-message');
+            statusEl.style.display = 'block';
+            statusEl.className = 'status-message';
+            statusEl.textContent = '⏳ Sending notification...';
 
-            // Generate unique notification ID
-            var notificationId = generateNotificationId();
+            const notificationId = generateNotificationId();
+            const deliveryType = document.getElementById('delivery-type').value;
+            
+            let scheduledTime = null;
+            if (deliveryType === 'scheduled') {
+                const date = document.getElementById('schedule-date').value;
+                const time = document.getElementById('schedule-time').value;
+                const timezone = document.getElementById('schedule-timezone').value;
+                if (date && time) {
+                    scheduledTime = { date, time, timezone };
+                }
+            }
 
-            var payload = {
-                notificationId: notificationId,  // Include the unique ID
+            const payload = {
+                notificationId: notificationId,
                 siteIdentifier: document.getElementById('notification-site-identifier').value,
                 title: document.getElementById('notification-title').value,
                 body: document.getElementById('notification-body').value,
@@ -69,26 +351,79 @@
                 image: document.getElementById('notification-image').value,
                 tag: document.getElementById('notification-tag').value,
                 silent: document.getElementById('notification-silent').checked,
-                url: document.getElementById('notification-deep-link').value
+                url: document.getElementById('notification-deep-link').value,
+                audienceType: document.getElementById('audience-type').value,
+                scheduledTime: scheduledTime
             };
 
-            console.log('Payload being sent:', payload);
+            console.log('📤 Sending payload:', payload);
 
-            fetch('/send-notification', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(payload),
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Notification sent:', data);
-            })
-            .catch((error) => {
+            try {
+                const response = await fetch('/send-notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    statusEl.className = 'status-message status-success';
+                    statusEl.textContent = scheduledTime ? 
+                        '✅ Notification scheduled successfully!' : 
+                        `✅ Notification sent to ${data.count || 0} subscriber(s)!`;
+                    // Reset form after 2 seconds
+                    setTimeout(() => {
+                        document.getElementById('notification-form').reset();
+                        document.getElementById('preview-title').textContent = 'Notification Title';
+                        document.getElementById('preview-body').textContent = 'Your notification message will appear here...';
+                        statusEl.style.display = 'none';
+                    }, 3000);
+                } else {
+                    statusEl.className = 'status-message status-error';
+                    statusEl.textContent = '❌ Error: ' + (data.message || 'Failed to send notification');
+                }
+            } catch (error) {
                 console.error('Error:', error);
-            });
+                statusEl.className = 'status-message status-error';
+                statusEl.textContent = '❌ Network error: ' + error.message;
+            }
         });
+        
+        // Save draft functionality
+        document.getElementById('btn-save-draft').addEventListener('click', function() {
+            const draft = {
+                title: document.getElementById('notification-title').value,
+                body: document.getElementById('notification-body').value,
+                icon: document.getElementById('notification-icon').value,
+                image: document.getElementById('notification-image').value,
+                url: document.getElementById('notification-deep-link').value
+            };
+            localStorage.setItem('notification-draft', JSON.stringify(draft));
+            const statusEl = document.getElementById('status-message');
+            statusEl.style.display = 'block';
+            statusEl.className = 'status-message status-success';
+            statusEl.textContent = '💾 Draft saved locally!';
+            setTimeout(() => statusEl.style.display = 'none', 2000);
+        });
+        
+        // Load draft on page load
+        window.addEventListener('load', function() {
+            const draft = localStorage.getItem('notification-draft');
+            if (draft) {
+                const data = JSON.parse(draft);
+                document.getElementById('notification-title').value = data.title || '';
+                document.getElementById('notification-body').value = data.body || '';
+                document.getElementById('notification-icon').value = data.icon || '';
+                document.getElementById('notification-image').value = data.image || '';
+                document.getElementById('notification-deep-link').value = data.url || '';
+                // Trigger preview updates
+                document.getElementById('notification-title').dispatchEvent(new Event('input'));
+                document.getElementById('notification-body').dispatchEvent(new Event('input'));
+            }
+            loadTemplates();
+        });
+    </script>
 
         // Function to load and insert the side menu
         function loadSideMenu() {

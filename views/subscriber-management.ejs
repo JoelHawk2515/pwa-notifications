@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <%- include('partials/_head') %>
+    <title>Subscriber Management</title>
+    <style>
+        .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+        .filters { display:flex; gap: 10px; margin-bottom: 15px; }
+        .filters input, .filters select { padding:8px; border:1px solid #d1d5db; border-radius:4px; }
+        table { width:100%; border-collapse: collapse; }
+        th, td { padding:10px; border-bottom:1px solid #e5e7eb; text-align:left; }
+        th { background:#f3f4f6; }
+        .btn { padding:6px 10px; border:none; border-radius:4px; cursor:pointer; }
+        .btn-danger { background:#ef4444; color:#fff; }
+        .btn-secondary { background:#6b7280; color:#fff; }
+    </style>
+</head>
+<body>
+    <%- include('side-menu') %>
+    <div class="container">
+        <h1>👥 Subscriber Management</h1>
+        <div class="filters">
+            <input type="text" id="search" placeholder="Search endpoint or UA">
+            <select id="status">
+                <option value="">All</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="bounced">Bounced</option>
+                <option value="unsubscribed">Unsubscribed</option>
+            </select>
+            <button class="btn btn-secondary" onclick="loadSubscribers()">Apply</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>User Agent</th>
+                    <th>Subscribed</th>
+                    <th>Status</th>
+                    <th>Tags</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="subsBody">
+                <tr><td colspan="6">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const siteIdentifier = '<%= site_identifier %>';
+        async function loadSubscribers(){
+            const q = document.getElementById('search').value;
+            const status = document.getElementById('status').value;
+            const params = new URLSearchParams({ site_identifier: siteIdentifier });
+            if (q) params.append('q', q);
+            if (status) params.append('status', status);
+            const res = await fetch(`/api/subscribers?${params}`);
+            const data = await res.json();
+            const tbody = document.getElementById('subsBody');
+            if (data.success){
+                tbody.innerHTML = data.subscribers.map(s => `
+                    <tr>
+                        <td>${s.endpoint.slice(0,40)}...</td>
+                        <td>${s.userAgent || ''}</td>
+                        <td>${new Date(s.subscriptionTime).toLocaleString()}</td>
+                        <td>${s.status || 'active'}</td>
+                        <td>${s.tags || ''}</td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="setStatus(${s.id}, 'inactive')">Deactivate</button>
+                            <button class="btn btn-danger" onclick="del(${s.id})">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6">Failed to load</td></tr>';
+            }
+        }
+        async function setStatus(id, status){
+            await fetch(`/api/subscribers/${id}/status`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status }) });
+            loadSubscribers();
+        }
+        async function del(id){
+            await fetch(`/api/subscribers/${id}`, { method:'DELETE' });
+            loadSubscribers();
+        }
+        loadSubscribers();
+    </script>
+</body>
+</html>

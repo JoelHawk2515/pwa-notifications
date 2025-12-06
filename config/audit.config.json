@@ -1,0 +1,13 @@
+{
+  "routes": [
+    "/",
+    "/dashboard",
+    "/all-sites",
+    "/analytics",
+    "/send-notification",
+    "/profile",
+    "/notification-settings",
+    "/subscribers-dashboard",
+    "/login"
+  ]
+}

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>Profile - Beacon</title>
+  <%- include('partials/_head') %>
+</head>
+<body>
+  <div class="app-wrapper">
+    <%- include('partials/_sidebar', { user: user, currentPath: '/profile' }) %>
+    
+    <main class="main-content">
+      <%- include('partials/_topbar', { user: user, pageTitle: 'Profile' }) %>
+      
+      <div class="page-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-top">
+            <div>
+              <h1 class="page-title">User Profile</h1>
+              <p class="page-description">Manage your account settings and preferences</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3">
+          <!-- Profile Card -->
+          <div class="card" style="grid-column: span 2;">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i data-lucide="user" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                Profile Information
+              </h3>
+            </div>
+            <div class="card-body">
+              <form action="/update" method="post">
+                <div class="grid grid-cols-2">
+                  <div class="form-group">
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text" id="username" name="username" class="form-input" value="<%= user.username %>" readonly>
+                    <span class="form-hint">Username cannot be changed</span>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="email" class="form-label form-label-required">Email</label>
+                    <input type="email" id="email" name="email" class="form-input" value="<%= user.email || '' %>" required>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2">
+                  <div class="form-group">
+                    <label for="first_name" class="form-label">First Name</label>
+                    <input type="text" id="first_name" name="first_name" class="form-input" value="<%= user.first_name || '' %>">
+                  </div>
+
+                  <div class="form-group">
+                    <label for="last_name" class="form-label">Last Name</label>
+                    <input type="text" id="last_name" name="last_name" class="form-input" value="<%= user.last_name || '' %>">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="profile_image" class="form-label">Profile Image</label>
+                  <input type="file" id="profile_image" name="profile_image" class="form-input" accept="image/*">
+                  <span class="form-hint">Upload a new profile picture (JPG, PNG, max 2MB)</span>
+                </div>
+
+                <div class="flex justify-end">
+                  <button type="submit" class="btn btn-primary">
+                    <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                    Update Profile
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Account Info Card -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i data-lucide="shield" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                Account Details
+              </h3>
+            </div>
+            <div class="card-body">
+              <div class="mb-md">
+                <div class="text-xs text-secondary mb-xs">Role</div>
+                <span class="badge badge-<%= isAdmin ? 'primary' : 'info' %>">
+                  <%= isAdmin ? 'Administrator' : 'User' %>
+                </span>
+              </div>
+
+              <div class="mb-md">
+                <div class="text-xs text-secondary mb-xs">Site Identifier</div>
+                <div class="text-sm font-medium"><%= user.site_identifier || 'localhost' %></div>
+              </div>
+
+              <div class="mb-md">
+                <div class="text-xs text-secondary mb-xs">Member Since</div>
+                <div class="text-sm"><%= user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A' %></div>
+              </div>
+
+              <div class="mt-lg">
+                <a href="/logout" class="btn btn-secondary w-full">
+                  <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+                  Logout
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Section: Add New User -->
+        <% if (isAdmin) { %>
+        <div class="card mt-lg">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i data-lucide="user-plus" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+              Add New User
+            </h3>
+          </div>
+          <div class="card-body">
+            <form action="/add-user" method="post">
+              <div class="grid grid-cols-2">
+                <div class="form-group">
+                  <label for="new_username" class="form-label form-label-required">Username</label>
+                  <input type="text" id="new_username" name="username" class="form-input" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="new_email" class="form-label form-label-required">Email</label>
+                  <input type="email" id="new_email" name="email" class="form-input" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="new_role" class="form-label form-label-required">Role</label>
+                <select id="new_role" name="role" class="form-select">
+                  <option value="administrator">Administrator</option>
+                  <option value="site-access level">Site Access</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="search-sites" class="form-label">Sites</label>
+                <input type="text" id="search-sites" class="form-input" placeholder="Search sites..." oninput="filterSites()">
+                <div id="site-dropdown" class="mt-sm" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-sm);">
+                  <ul id="site-list" style="list-style: none; margin: 0; padding: 0;">
+                    <% sites.forEach(function(site) { %>
+                      <li class="site-option" data-site-id="<%= site.siteIdentifier %>" onclick="addSiteToSelection('<%= site.siteIdentifier %>', '<%= site.siteCode %>')" style="padding: var(--space-sm); cursor: pointer; border-radius: var(--radius-sm);">
+                        <%= site.siteCode %>
+                      </li>
+                    <% }) %>
+                  </ul>
+                </div>
+                <div id="selected-sites" class="mt-md flex gap-sm" style="flex-wrap: wrap;"></div>
+              </div>
+
+              <div class="flex justify-end gap-md">
+                <button type="reset" class="btn btn-secondary" onclick="clearSiteSelection()">Reset</button>
+                <button type="submit" class="btn btn-primary">
+                  <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>
+                  Add User
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        <% } %>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    let selectedSites = [];
+
+    // Function to filter the site dropdown based on search input
+    function filterSites() {
+      const searchInput = document.getElementById('search-sites').value.toLowerCase();
+      const siteOptions = document.querySelectorAll('.site-option');
+      siteOptions.forEach(option => {
+        const siteText = option.textContent.toLowerCase();
+        if (siteText.includes(searchInput)) {
+          option.style.display = 'block';
+        } else {
+          option.style.display = 'none';
+        }
+      });
+    }
+
+    // Function to add a site to the selection
+    function addSiteToSelection(siteId, siteCode) {
+      if (!selectedSites.includes(siteId)) {
+        selectedSites.push(siteId);
+        updateSelectedSitesDisplay();
+      }
+    }
+
+    // Function to remove a site from the selection
+    function removeSiteFromSelection(siteId) {
+      selectedSites = selectedSites.filter(id => id !== siteId);
+      updateSelectedSitesDisplay();
+    }
+
+    // Function to update the display of selected sites
+    function updateSelectedSitesDisplay() {
+      const selectedSitesDiv = document.getElementById('selected-sites');
+      selectedSitesDiv.innerHTML = '';
+      
+      selectedSites.forEach(siteId => {
+        const siteElement = document.querySelector(`[data-site-id="${siteId}"]`);
+        const siteCode = siteElement ? siteElement.textContent.trim() : siteId;
+        
+        const badge = document.createElement('span');
+        badge.className = 'badge badge-primary';
+        badge.style.display = 'inline-flex';
+        badge.style.alignItems = 'center';
+        badge.style.gap = 'var(--space-xs)';
+        badge.innerHTML = `
+          ${siteCode}
+          <i data-lucide="x" style="width: 14px; height: 14px; cursor: pointer;" onclick="removeSiteFromSelection('${siteId}')"></i>
+        `;
+        selectedSitesDiv.appendChild(badge);
+        
+        // Hidden input for form submission
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'sites[]';
+        input.value = siteId;
+        selectedSitesDiv.appendChild(input);
+      });
+
+      // Re-initialize Lucide icons
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+
+    // Clear site selection
+    function clearSiteSelection() {
+      selectedSites = [];
+      updateSelectedSitesDisplay();
+    }
+
+    // Add hover effect to site options
+    document.addEventListener('DOMContentLoaded', function() {
+      const siteOptions = document.querySelectorAll('.site-option');
+      siteOptions.forEach(option => {
+        option.addEventListener('mouseenter', function() {
+          this.style.backgroundColor = 'var(--color-bg-tertiary)';
+        });
+        option.addEventListener('mouseleave', function() {
+          this.style.backgroundColor = '';
+        });
+      });
+    });
+  </script>
+</body>
+</html>

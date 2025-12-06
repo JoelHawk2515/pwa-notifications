@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <title>Compose Notification - Beacon</title>
+  <%- include('partials/_head') %>
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+</head>
+<body>
+  <div class="app-wrapper">
+    <%- include('partials/_sidebar', { user: user, currentPath: '/send-notification' }) %>
+    
+    <main class="main-content">
+      <%- include('partials/_topbar', { user: user, pageTitle: 'Compose Notification' }) %>
+      
+      <div class="page-container">
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-top">
+            <div>
+              <h1 class="page-title">Compose Notification</h1>
+              <p class="page-description">Create and send push notifications</p>
+            </div>
+            <div class="flex gap-sm">
+              <div class="form-group" style="min-width: 260px;">
+                <label for="sitePicker" class="form-label">Target Site</label>
+                <select id="sitePicker" class="form-select">
+                  <% if (sites && sites.length) { %>
+                    <option value="" <%= !siteCode ? 'selected' : '' %>>Select a site…</option>
+                    <% sites.forEach(function(s) { %>
+                      <option value="<%= s.siteCode %>" <%= siteCode === s.siteCode ? 'selected' : '' %>><%= s.siteCode %></option>
+                    <% }) %>
+                  <% } else { %>
+                    <option value="">No sites found</option>
+                  <% } %>
+                </select>
+              </div>
+              <button type="button" class="btn btn-secondary" onclick="saveDraft()">
+                <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                Save Draft
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <% if (errorMessage) { %>
+        <div class="alert alert-danger mb-lg">
+          <i data-lucide="alert-circle"></i>
+          <%= errorMessage %>
+        </div>
+        <% } %>
+
+        <div class="grid" style="grid-template-columns: 1fr 400px; gap: var(--space-lg);">
+          <!-- Composer Form -->
+          <div style="display: flex; flex-direction: column; gap: var(--space-lg);">
+            <!-- Target Audience Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i data-lucide="users" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                  Target Audience
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="audienceType" class="form-label">Send To</label>
+                  <select id="audienceType" class="form-select">
+                    <option value="all">All Subscribers</option>
+                    <option value="active">Active Users (Last 7 days)</option>
+                    <option value="segment">Custom Segment</option>
+                  </select>
+                  <span class="form-hint" id="subscriberCount">Loading subscriber count...</span>
+                </div>
+
+                <div id="segmentOptions" class="mt-md" style="display: none;">
+                  <div class="form-group">
+                    <label class="form-label">Segment Filters</label>
+                    <div class="flex gap-sm">
+                      <select class="form-select">
+                        <option>Last Active</option>
+                        <option>Location</option>
+                        <option>Browser</option>
+                      </select>
+                      <input type="text" class="form-input" placeholder="Value">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Template Selection Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i data-lucide="layout-template" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                  Template
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="flex gap-sm">
+                  <select id="templateSelect" class="form-select" style="flex: 1;">
+                    <option value="">Start from scratch</option>
+                  </select>
+                  <button type="button" class="btn btn-secondary" onclick="applyTemplate()">
+                    <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+                    Apply
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notification Content Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i data-lucide="message-square" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                  Notification Content
+                </h3>
+              </div>
+              <div class="card-body">
+                <input type="hidden" id="siteIdentifier" value="<%= siteIdentifier || '' %>">
+                
+                <div class="form-group">
+                  <label for="notificationTitle" class="form-label form-label-required">Title</label>
+                  <input type="text" id="notificationTitle" class="form-input" placeholder="Your notification headline" maxlength="50" required>
+                  <span class="form-hint"><span id="titleCount">0</span>/50 characters</span>
+                </div>
+
+                <div class="form-group">
+                  <label for="notificationBody" class="form-label form-label-required">Body</label>
+                  <div id="quillEditor" style="background: white; min-height: 120px; border: 1px solid var(--color-border); border-radius: var(--radius-md);"></div>
+                  <textarea id="notificationBody" style="display: none;"></textarea>
+                  <span class="form-hint"><span id="bodyCount">0</span>/150 characters</span>
+                </div>
+
+                <div class="grid grid-cols-2">
+                  <div class="form-group">
+                    <label for="notificationIcon" class="form-label">Icon URL</label>
+                    <input type="url" id="notificationIcon" class="form-input" placeholder="https://example.com/icon.png">
+                  </div>
+
+                  <div class="form-group">
+                    <label for="notificationBadge" class="form-label">Badge URL</label>
+                    <input type="url" id="notificationBadge" class="form-input" placeholder="https://example.com/badge.png">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="notificationImage" class="form-label">Image URL (Large)</label>
+                  <input type="url" id="notificationImage" class="form-input" placeholder="https://example.com/image.png">
+                </div>
+
+                <div class="grid grid-cols-2">
+                  <div class="form-group">
+                    <label for="notificationUrl" class="form-label">Action URL</label>
+                    <input type="url" id="notificationUrl" class="form-input" placeholder="https://yoursite.com/page">
+                  </div>
+
+                  <div class="form-group">
+                    <label for="notificationTag" class="form-label">Tag (Optional)</label>
+                    <input type="text" id="notificationTag" class="form-input" placeholder="promo-2025">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Scheduling Card -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i data-lucide="clock" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                  Delivery Schedule
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="deliveryType" class="form-label">When to Send</label>
+                  <select id="deliveryType" class="form-select">
+                    <option value="immediate">Send Immediately</option>
+                    <option value="scheduled">Schedule for Later</option>
+                  </select>
+                </div>
+
+                <div id="scheduleFields" style="display: none;">
+                  <div class="grid grid-cols-2">
+                    <div class="form-group">
+                      <label for="scheduleDate" class="form-label">Date</label>
+                      <input type="date" id="scheduleDate" class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                      <label for="scheduleTime" class="form-label">Time</label>
+                      <input type="time" id="scheduleTime" class="form-input">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="scheduleTimezone" class="form-label">Timezone</label>
+                    <select id="scheduleTimezone" class="form-select">
+                      <option value="America/New_York">Eastern Time (ET)</option>
+                      <option value="America/Chicago">Central Time (CT)</option>
+                      <option value="America/Denver">Mountain Time (MT)</option>
+                      <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                      <option value="UTC">UTC</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end gap-md">
+              <button type="button" class="btn btn-secondary" onclick="testNotification()">
+                <i data-lucide="play" style="width: 16px; height: 16px;"></i>
+                Test Send
+              </button>
+              <button type="button" class="btn btn-primary" onclick="sendNotification()" id="sendBtn">
+                <i data-lucide="send" style="width: 16px; height: 16px;"></i>
+                Send Notification
+              </button>
+            </div>
+
+            <!-- Status Message -->
+            <div id="statusMessage" class="alert" style="display: none;"></div>
+          </div>
+
+          <!-- Preview Pane (Sticky) -->
+          <div>
+            <div class="card" style="position: sticky; top: 80px;">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i data-lucide="eye" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                  Preview
+                </h3>
+              </div>
+              <div class="card-body">
+                <!-- Mobile Preview -->
+                <div style="background: var(--color-bg-secondary); padding: var(--space-lg); border-radius: var(--radius-lg);">
+                  <div id="notificationPreview" style="background: white; border-radius: 8px; padding: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                    <div style="display: flex; gap: 12px;">
+                      <div id="previewIcon" style="width: 48px; height: 48px; border-radius: 8px; background: var(--color-bg-tertiary); flex-shrink: 0;"></div>
+                      <div style="flex: 1; min-width: 0;">
+                        <div id="previewTitle" style="font-weight: 600; font-size: 15px; margin-bottom: 4px; color: #000;">Your notification title</div>
+                        <div id="previewBody" style="font-size: 13px; color: #555; line-height: 1.4;">Your notification message will appear here...</div>
+                      </div>
+                    </div>
+                    <img id="previewImage" style="width: 100%; border-radius: 4px; margin-top: 12px; display: none;">
+                  </div>
+                  <div style="margin-top: var(--space-md); font-size: 12px; color: var(--color-text-tertiary); text-align: center;">
+                    <i data-lucide="smartphone" style="width: 14px; height: 14px;"></i>
+                    Preview on device
+                  </div>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="mt-lg">
+                  <h4 class="text-sm font-medium mb-sm">Estimated Reach</h4>
+                  <div class="stat-card" style="margin-bottom: 0;">
+                    <div class="stat-card-icon" style="background-color: var(--color-primary-light);">
+                      <i data-lucide="users" style="color: var(--color-primary);"></i>
+                    </div>
+                    <div class="stat-card-content">
+                      <div class="stat-card-value" id="reachCount">-</div>
+                      <div class="stat-card-label">Subscribers</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+
+    // Initialize Quill editor
+    let quill = new Quill('#quillEditor', {
+      theme: 'snow',
+      placeholder: 'Your notification message...',
+      modules: {
+        toolbar: [
+          ['bold', 'italic'],
+          ['link'],
+          ['clean']
+        ]
+      }
+    });
+
+    // Character counters
+    document.getElementById('notificationTitle').addEventListener('input', function(e) {
+      const count = e.target.value.length;
+      document.getElementById('titleCount').textContent = count;
+      updatePreview();
+    });
+
+    quill.on('text-change', function() {
+      const text = quill.getText().trim();
+      document.getElementById('bodyCount').textContent = text.length;
+      document.getElementById('notificationBody').value = text;
+      updatePreview();
+    });
+
+    // Icon/Image preview
+    document.getElementById('notificationIcon').addEventListener('input', updatePreview);
+    document.getElementById('notificationImage').addEventListener('input', updatePreview);
+
+    // Update preview
+    function updatePreview() {
+      const title = document.getElementById('notificationTitle').value || 'Your notification title';
+      const body = quill.getText().trim() || 'Your notification message will appear here...';
+      const icon = document.getElementById('notificationIcon').value;
+      const image = document.getElementById('notificationImage').value;
+
+      document.getElementById('previewTitle').textContent = title;
+      document.getElementById('previewBody').textContent = body;
+
+      const previewIcon = document.getElementById('previewIcon');
+      if (icon) {
+        previewIcon.style.backgroundImage = `url(${icon})`;
+        previewIcon.style.backgroundSize = 'cover';
+      } else {
+        previewIcon.style.backgroundImage = '';
+      }
+
+      const previewImage = document.getElementById('previewImage');
+      if (image) {
+        previewImage.src = image;
+        previewImage.style.display = 'block';
+      } else {
+        previewImage.style.display = 'none';
+      }
+
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+
+    // Delivery type toggle
+    document.getElementById('deliveryType').addEventListener('change', function(e) {
+      const scheduleFields = document.getElementById('scheduleFields');
+      scheduleFields.style.display = e.target.value === 'scheduled' ? 'block' : 'none';
+    });
+
+    // Audience type toggle
+    document.getElementById('audienceType').addEventListener('change', function(e) {
+      const segmentOptions = document.getElementById('segmentOptions');
+      segmentOptions.style.display = e.target.value === 'segment' ? 'block' : 'none';
+    });
+
+    // Load subscriber count
+    async function loadSubscriberCount() {
+      try {
+        const siteIdentifier = document.getElementById('siteIdentifier').value;
+        const response = await fetch(`/api/subscribers?site_identifier=${siteIdentifier}`);
+        const data = await response.json();
+        const count = data.subscribers ? data.subscribers.length : 0;
+        document.getElementById('subscriberCount').textContent = `${count} subscribers will receive this notification`;
+        document.getElementById('reachCount').textContent = count;
+      } catch (error) {
+        console.error('Error loading subscriber count:', error);
+        document.getElementById('subscriberCount').textContent = 'Unable to load subscriber count';
+      }
+    }
+
+    // Load templates
+    async function loadTemplates() {
+      try {
+        const response = await fetch('/api/templates');
+        const data = await response.json();
+        const select = document.getElementById('templateSelect');
+        
+        if (data.templates && data.templates.length > 0) {
+          data.templates.forEach(template => {
+            const option = document.createElement('option');
+            option.value = template.id;
+            option.textContent = template.name;
+            option.dataset.template = JSON.stringify(template);
+            select.appendChild(option);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading templates:', error);
+      }
+    }
+
+    // Apply template
+    function applyTemplate() {
+      const select = document.getElementById('templateSelect');
+      const option = select.options[select.selectedIndex];
+      
+      if (option.dataset.template) {
+        const template = JSON.parse(option.dataset.template);
+        document.getElementById('notificationTitle').value = template.title || '';
+        quill.setText(template.body || '');
+        document.getElementById('notificationIcon').value = template.icon || '';
+        document.getElementById('notificationImage').value = template.image || '';
+        updatePreview();
+      }
+    }
+
+    // Test notification
+    async function testNotification() {
+      const siteIdentifier = document.getElementById('siteIdentifier').value;
+      
+      try {
+        const response = await fetch('/notifications/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ siteIdentifier })
+        });
+        
+        const data = await response.json();
+        showStatus(data.success ? 'success' : 'danger', data.message || 'Test notification sent!');
+      } catch (error) {
+        showStatus('danger', 'Failed to send test notification');
+      }
+    }
+
+    // Send notification
+    async function sendNotification() {
+      const title = document.getElementById('notificationTitle').value;
+      const body = quill.getText().trim();
+      
+      if (!title || !body) {
+        showStatus('danger', 'Please fill in title and body');
+        return;
+      }
+
+      const payload = {
+        siteIdentifier: document.getElementById('siteIdentifier').value,
+        title: title,
+        body: body,
+        icon: document.getElementById('notificationIcon').value,
+        badge: document.getElementById('notificationBadge').value,
+        image: document.getElementById('notificationImage').value,
+        data: {
+          url: document.getElementById('notificationUrl').value
+        },
+        tag: document.getElementById('notificationTag').value,
+        deliveryType: document.getElementById('deliveryType').value
+      };
+
+      if (payload.deliveryType === 'scheduled') {
+        payload.scheduleDate = document.getElementById('scheduleDate').value;
+        payload.scheduleTime = document.getElementById('scheduleTime').value;
+        payload.timezone = document.getElementById('scheduleTimezone').value;
+      }
+
+      try {
+        const response = await fetch('/send-notification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          showStatus('success', data.message || 'Notification sent successfully!');
+          setTimeout(() => {
+            window.location.href = '/notification-center';
+          }, 2000);
+        } else {
+          showStatus('danger', data.message || 'Failed to send notification');
+        }
+      } catch (error) {
+        console.error('Error sending notification:', error);
+        showStatus('danger', 'Failed to send notification');
+      }
+    }
+
+    // Save draft
+    function saveDraft() {
+      showStatus('info', 'Draft saved (feature coming soon)');
+    }
+
+    // Show status message
+    function showStatus(type, message) {
+      const statusEl = document.getElementById('statusMessage');
+      statusEl.className = `alert alert-${type}`;
+      statusEl.innerHTML = `<i data-lucide="${type === 'success' ? 'check-circle' : 'alert-circle'}"></i> ${message}`;
+      statusEl.style.display = 'flex';
+      
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+
+      setTimeout(() => {
+        statusEl.style.display = 'none';
+      }, 5000);
+    }
+
+    // Handle site selection change
+    document.getElementById('sitePicker')?.addEventListener('change', function(e) {
+      const selected = e.target.value;
+      if (selected) {
+        window.location.href = `/send-notification/${selected}`;
+      }
+    });
+
+    // Guard: disable actions until a site is selected
+    function requireSiteSelected() {
+      const id = document.getElementById('siteIdentifier').value;
+      if (!id) {
+        showStatus('info', 'Please select a site first');
+        return false;
+      }
+      return true;
+    }
+
+    // Override send/test to ensure a site is selected
+    const originalTest = testNotification;
+    testNotification = function() {
+      if (!requireSiteSelected()) return;
+      originalTest();
+    }
+    const originalSend = sendNotification;
+    sendNotification = function() {
+      if (!requireSiteSelected()) return;
+      originalSend();
+    }
+
+    // Initialize
+    loadTemplates();
+    updatePreview();
+    if (document.getElementById('siteIdentifier').value) {
+      loadSubscriberCount();
+    }
+  </script>
+</body>
+</html>
